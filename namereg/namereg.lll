@@ -1,0 +1,23 @@
+{
+  [[(address)]] 'NameReg
+  [['NameReg]] (address)
+  [[ config ]] 'Config
+  [['Config]] config
+  [[69]] (caller)
+  (returnlll {
+    (when (= $0 'register) {
+      (when @@ $32 (stop))
+      (when @@(caller) [[@@(caller)]] 0)
+      [[$32]] (caller)
+      [[(caller)]] $32
+      (stop)
+    })
+    (when (&& (= $0 'unregister) @@(caller)) {
+      [[@@(caller)]] 0
+      [[(caller)]] 0
+      (stop)
+    })
+    (when (&& (= $0 'kill) (= (caller) @@69)) (suicide (caller)))
+    (return @@ $0)
+  })
+}

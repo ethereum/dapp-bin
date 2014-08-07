@@ -1,7 +1,8 @@
 {
+(set 'nameRegAddr (msg config 0))
 [0] 'register
 [32] 'Exchange
-(msg allgas 0x50441127ea5b9dfd835a9aba4e1dc9c1257b58ca 0 0 64)
+(msg allgas @nameRegAddr 0 0 64)
 
 (def 'min (a b) (if (< a b) a b))
 

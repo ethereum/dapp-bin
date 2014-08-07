@@ -1,0 +1,83 @@
+
+<!-- saved from url=(0031)http://gavwood.com/namereg.html -->
+<html id="abId0.6114371714647859"><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+	<script>
+		if (typeof(window.eth) === "undefined")
+			document.write('<script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></scrip' + 't>');
+	</script><script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></script>
+<title>NameReg</title>
+<style>
+body {
+	font-family: Gentium, Georgia, serif
+}
+h1, h2 {
+	font-family: Trebuchet MS, sans
+}
+h1 { 
+	font-size: 16pt
+}
+h2 { 
+	font-size: 13pt
+}
+div {
+	margin-left: 8pt;
+}
+img {
+	margin: 4pt;
+	padding: 6pt;
+}
+</style>
+<script>
+var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var nameRegAddr = eth.stateAt(configAddr, "0", 0);
+var dnsRegAddr = eth.stateAt(configAddr, "4", 0);
+regName = function()
+{
+	var name = document.getElementById("regname").value;
+	if (name != "")
+			eth.transact({ 'to': nameRegAddr, 'data': [ "register", name.unbin() ] });
+	else{}
+}
+regDomain = function()
+{
+	var oname = document.getElementById("domain").value;
+	var name = oname;
+	if (name.substr(-4) == ".eth")
+		name = name.substr(0, name.length - 4);
+	var domain = document.getElementById("ip").value;
+	var ip = domain.split('.');
+	if (ip.length == 4)
+	{
+		var data = ((ip[0]-0) << 24) + ((ip[1]-0) << 16) + ((ip[2]-0) << 8) + (ip[3]-0);
+		eth.transact({ 'to': dnsRegAddr, data: ['register', name, data+'' ] });
+	}
+	else
+		eth.transact({ 'to': dnsRegAddr, data: ['register', name, domain ] });
+}
+lookupName = function()
+{
+	document.getElementById("addr").value = eth.storageAt(nameRegAddr, document.getElementById("name").value).substr(2);
+}
+lookupAddr = function()
+{
+	document.getElementById("name").value = eth.storageAt(nameRegAddr, "0x" + document.getElementById("addr").value).bin().unpad();
+}
+</script>
+</head>
+<body id="abId0.7690352932550013">
+<h1>NameReg</h1>
+<h2>Lookup</h2>
+<table>
+<tbody id="abId0.924682306824252"><tr id="abId0.4536155476234853"><td><label for="name">Name: </label></td><td id="abId0.17639184789732099"><input id="name" type="text" value="" onkeyup="lookupName()"></td></tr>
+<tr id="abId0.6028991765342653"><td><label for="addr">Address: </label></td><td id="abId0.5731069270987064"><input id="addr" type="text" value="" onkeyup="lookupAddr()"></td></tr>
+</tbody></table>
+<h2>Register Name</h2>
+<div><label for="name">Name: </label><input id="regname" type="text" value=""><button onclick="regName()">Register</button></div>
+<h2>Register Domain</h2>
+<div><label for="name">IP/Web domain: </label><input id="ip" type="text" value=""><label for="name">Ethereum Domain: </label><input id="domain" type="text" value="">.eth<button onclick="regDomain()">Register</button></div>
+
+<span id="test">
+</span>
+
+
+</body></html>
