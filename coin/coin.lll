@@ -1,0 +1,50 @@
+{
+[[ (caller) ]] 0x1000000
+[[ 0x69 ]] (caller)
+[[ 0x42 ]] (number)
+
+[0]'register [32]'GavCoin
+(msg allgas " + nameReg + " 0 0 64)
+[0]'GAV [32]'1000
+(msg allgas " + coins + " 0 0 64)
+
+(returnlll {
+	(when (&& (= $0 'kill) (= (caller) @@0x69)) (suicide (caller)))
+	(when (= $0 'balance) (return @@$32))
+	(when (= $0 'approved) (return @@ (sha3pair (if (= (calldatasize) 64) (caller) $64) $32)) )
+	
+	(when (= $0 'approve) {
+		[[(sha3pair (caller) $32)]] $32
+		(stop)
+	})
+
+	(when (= $0 'send) {
+		(set 'fromVar (if (= (calldatasize) 96)
+			(caller)
+			{
+				(when (! @@ (sha3pair (origin) (caller))) (return 0))
+				(origin)
+			}
+		))
+		(def 'to $32)
+		(def 'value $64)
+		(def 'from (get 'fromVar))
+		(set 'fromBal @@from)
+		(when (< @fromBal value) (return 0))
+		[[ from ]]: (- @fromBal value)
+		[[ to ]]: (+ @@to value)
+		(return 1)
+	})
+
+	(set 'n @@0x42)
+	(when (&& (|| (= $0 'mine) (! (calldatasize))) (> (number) @n)) {
+		(set 'b (- (number) @n))
+		[[(coinbase)]] (+ @@(coinbase) (* 1000 @b))
+		[[(caller)]] (+ @@(caller) (* 1000 @b))
+		[[0x42]] (number)
+		(return @b)
+	})
+
+	(return @@ $0)
+})
+}

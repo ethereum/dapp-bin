@@ -1,0 +1,376 @@
+<html>
+<head>
+<title>GavCoin</title>
+<style>
+body {
+	font-family: Ubuntu, Tahoma, sans;
+	background-image: url("backcoin.jpg");
+	background-size:   cover;
+	background-repeat: no-repeat;
+	margin: 0;
+}
+h1 {
+	text-align: center;
+	font-size: 26pt;
+	color: rgba(0,0,0, 0.75);
+}
+ul#latest {
+	list-style-type: none;
+	margin: 0;
+	margin-top: 16pt;
+	padding: 0;
+	border: 16pt rgba(0,0,0, 0.05) solid;
+}
+ul#latest li {
+	padding: 4pt 0pt;
+}
+ul#latest li:nth-child(even) {
+	background-color: rgba(0,0,0, 0.05);
+}
+span.timestamp {
+	width: 13em;
+	display: inline-block;
+	color: #888;
+}
+span#gav {
+	font-weight: bold;
+}
+span#eth {
+	font-weight: bold;
+}
+div#top {
+	background-color: rgba(0,0,0,0.5);
+	color: white;
+	padding: 6pt;
+	text-shadow: 0px 0px 10px white;
+	border-radius: 0 0 6pt 6pt;
+}
+div#balance {
+//	margin-top: 30pt;
+	float: left;
+}
+div#addr {
+//	margin-top: 30pt;
+//	color: #888;
+	float: right;
+}
+span.xfer {
+	color: #888;
+}
+span.out {
+	color: #800;
+}
+span.mine {
+	color: #060;
+}
+span.in {
+	color: #008;
+}
+span.ind {
+	font-weight: bold;
+	margin: 0 4pt;
+}
+span.to, span.from {
+	font-weight: normal;
+	display: inline-block;
+//	width: 25em;
+	width: 5em;
+}
+span.value {
+	font-weight: bold;
+	width: 5em;
+	display: inline-block;
+	text-align: right;
+}
+span.name {
+	font-weight: bold;
+	font-size: small;
+	padding: 0 3pt;
+	width: 3em;
+	display: inline-block;
+	text-align: center;
+}
+span.xfer span.name {
+	font-weight: normal;
+}
+span.units {
+	font-size: small;
+	font-weight: bold;
+}
+li span.units {
+	padding: 0 4pt;
+}
+span.confirms, span.unconfirmed {
+	background: #8d9;
+	font-size: small;
+	margin: -1pt 4pt 4pt 4pt;
+	padding: 1pt 3pt 1pt 3pt;
+	border: #474 1pt solid;
+	border-radius: 4pt;
+	float: right;
+}
+span.unconfirmed {
+	background: #f88;
+	border-color: #844;
+}
+input#val {
+	width: 8em;
+}
+input#to {
+//	width: 24em;
+	width: 10em;
+}
+div#controls input {
+	background: rgba(255,255,255,0.25);
+	border: 2pt solid rgba(0,0,0,0.5); 
+}
+div#controls input.invalid {
+	background-color: #fcc;
+}
+div#controls input.maybevalid {
+	background-color: #fec;
+}
+div#controls button {
+	background: rgba(0,0,0,0.25);
+	border: 2pt solid rgba(0,0,0,0.5); 
+}
+button#mine {
+	float: right;
+}
+div#controls button.invalid {
+	background: transparent;
+	color: rgba(0,0,0,0.25);
+	border: 2px solid rgba(0,0,0,0.25);
+}
+div#controls {
+	text-align: center;
+	margin-top: 16pt;
+	padding: 16pt;
+	background-color: rgba(0,0,0, 0.05);
+}
+div#title {
+	margin-top: 10pt;
+	margin-left: 18pt;
+	font-size: 45pt;
+	font-weight: bold;
+	text-align: center;
+	background-color: rgba(255, 255, 255, 0.5);
+	border-radius: 56px;
+	display: inline-block;
+	padding: 8px;
+	padding-right: 24px;
+	box-shadow: 0 0 16pt black;
+}
+div#title img {
+	padding-top: 0pt;
+	margin-right: 10pt;
+}
+div#title span {
+	color: #430;
+	padding-top: 20pt;
+	display: inline-block;
+	margin-top: -10pt;
+}
+span#unc {
+	color: #fdd;
+	font-weight: normal;
+}
+span#unc span {
+	font-weight: bold;
+}
+</style>
+</head>
+<body>
+<div id="top">
+&nbsp;
+<div id="balance"><span id="gav">?</span> <span class="units">GAV</span></div>
+<div id="addr">?</div>
+</div>
+<div style="margin: 16pt">
+<div style="text-align: center">
+<div id="title"><img src="gavcoin.png" width="96" height="96" valign="top"/><span style="font-size: 35pt">GAV</span><span>coin</span></div>
+</div>
+<ul id="latest">
+</ul>
+<div id="controls">
+	<input id="val" value=""></input> <span class="units">GAV</span>
+	to <input id="to"></input>
+	<button id="send" onClick="dosend()">send</button>
+	<button id="mine" onClick="domine()">mine</button>
+</div>
+</div>
+<script>
+
+var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+
+var nameRegAddr;
+var gavCoinAddr;
+
+var checkto = function() {
+	var s = "";
+	var to = document.getElementById('to').value;
+	var dest;
+	if (to.length == 40)
+	{
+		dest = "0x" + to;
+		if (eth.balanceAt(dest, 0).dec() > 0)
+			s = "valid";
+		else
+			s = "maybevalid";
+	}
+	else
+	{
+		var dest = eth.stateAt(nameRegAddr, to, 0);
+		if (dest.dec() - 0)
+			s = "valid";
+		else
+		{
+			s = "invalid";
+			dest = "";
+		}
+	}
+	document.getElementById('to').className = s
+	document.getElementById('send').className = (document.getElementById('val').className != "invalid" && document.getElementById('to').className != "invalid") ? "valid" : "invalid";
+	return dest;
+}
+
+var totalGav = function() {
+	var confirmedGav = 0;
+	var unconfirmedGav = 0;
+	myAddrs.forEach(function(x) { confirmedGav -=- eth.stateAt(gavCoinAddr, x, -1).dec(); unconfirmedGav -=- eth.stateAt(gavCoinAddr, x, 0).dec(); });
+	return [confirmedGav, unconfirmedGav];
+}
+
+var checkvalue = function() {
+	var s = "";
+	var amount = document.getElementById('val').value;
+	var tg = totalGav();
+	if (amount - 0 > 0 && amount - 0 <= tg[1])
+		if (amount - 0 <= tg[0])
+			s = "valid";
+		else
+			s = "maybevalid";
+	else
+	{
+		s = "invalid";
+		amount = "";
+	}
+	document.getElementById('val').className = s;
+	document.getElementById('send').className = (document.getElementById('val').className != "invalid" && document.getElementById('to').className != "invalid") ? "valid" : "invalid";
+	return amount;
+}
+
+document.getElementById('val').oninput = checkvalue; 
+document.getElementById('to').oninput = checkto;
+
+var dosend = function() {
+	var amount = checkvalue();
+	var to = checkto();
+	if (amount && to)
+	{
+		var l = +amount;
+		eth.keys.forEach(function(x) {
+			if (l)
+			{
+				var t = +eth.stateAt(gavCoinAddr, eth.secretToAddress(x), 0).dec();
+				if (t > l)
+					t = l;
+				if (t)
+				{
+					var data = 'send'.pad(32) + to.pad(32) + (t + "").pad(32);
+					eth.transact(x, "0", gavCoinAddr, data, "2000", eth.gasPrice);
+					l -= t;
+				}
+			}
+		});
+	}
+}
+var domine = function() {
+	for (var i = 0; i < 5 && eth.stateAt(gavCoinAddr, "0x42", 0).dec() != eth.number.dec(); ++i)
+		eth.transact(eth.key, "0", gavCoinAddr, "", "2000", eth.gasPrice);
+}
+var pretty = function(x) {
+	var ret = eth.stateAt(nameRegAddr, x, 0);
+	if (ret.dec() - 0)
+		return "<b>" + ret.bin() + "</b>";
+
+	return x.substr(2);
+}
+
+var gcTxWatch;
+var latest;
+var updateGavCoinTxs;
+
+var refresh = function() {
+	nameRegAddr = eth.stateAt(configAddr, "0", 0);
+	var oGC = gavCoinAddr;
+	gavCoinAddr = eth.stateAt(configAddr, "2", 0);
+	
+	if (gavCoinAddr != oGC)
+	{
+		if (gcTxWatch)
+			gcTxWatch.uninstall();
+		if (gavCoinAddr.bin().length)
+		{
+			gcTxWatch = eth.watch({max: 15, altered: myAddrs.map(function (a) { return { id: gavCoinAddr, at: a } }) });
+			gcTxWatch.changed(updateGavCoinTxs);
+			return;	// refresh will be called by the above - no need to repeat.
+		}
+	}
+	
+	var cv = checkvalue();
+	var ct = checkto();
+	var blocksToMine = eth.number.dec() - eth.stateAt(gavCoinAddr, "0x42", 0).dec();
+	document.getElementById('mine').className = (blocksToMine ? "valid" : "invalid");
+	document.getElementById('mine').innerHTML = blocksToMine == 1 ? "mine" : "mine " + blocksToMine;
+	document.getElementById('addr').innerHTML = myAddrs[0].substr(2);
+	var confirmedGav = 0;
+	var unconfirmedGav = 0;
+	myAddrs.forEach(function(x) { confirmedGav -=- eth.stateAt(gavCoinAddr, x, -1).dec(); unconfirmedGav -=- eth.stateAt(gavCoinAddr, x, 0).dec(); });
+	document.getElementById('gav').innerHTML = (unconfirmedGav > confirmedGav ? confirmedGav + '<span id="unc"> (+ <span>' + (unconfirmedGav - confirmedGav) + "</span> unconfirmed)</span>" : unconfirmedGav);
+	var lh = document.getElementById("latest");
+	lh.innerHTML = "";
+	var s = latest.length - 1;
+	for (var i = 0; i < latest.length; ++i)
+	{
+		var l = latest[/*s -*/ i];
+		if (l.to != "".pad(20).unbin())
+		{
+			var mine = l.input.bin() == "" || l.input.bin().substr(0, 4) == "mine";
+			var send = l.input.bin().substr(0, 4) == "send";
+			if (mine || send)
+			{
+				var dest;
+				if (send)
+					dest = l.input.bin().substr(44, 20).unbin();
+				var wesent = myAddrs.indexOf(l.from) != -1 || (l.input.bin().length > 96 && myAddrs.indexOf(l.origin) != -1);
+				var wegot = myAddrs.indexOf(dest) != -1;
+				var value = mine ? l.output.dec() * 1000 * ((myAddrs.indexOf(l.coinbase) != -1 ? 1 : 0) + (myAddrs.indexOf(l.from) != -1 ? 1 : 0)) : l.input.bin().substr(64, 32).unbin().dec();
+				var age = eth.number - l.number;
+//				env.note(eth.number + " " + l.number + " " + age);
+				lh.innerHTML = lh.innerHTML + '<li>' +
+					'<span class="timestamp">' + new Date(l.timestamp * 1000).toLocaleString() + "</span>" +
+					(mine ? '<span class="mine"><span class="name">MINE' : wesent ? wegot ? '<span class="xfer"><span class="name">XFER' : '<span class="out"><span class="name">OUT' : '<span class="in"><span class="name">IN') + '</span>' +
+					'<span class="value">' + value + '<span class="units">GAV</span></span>' +
+					'' + (mine ? '' : send ? wesent ? wegot ? '' : '<span class="to"><span class="ind">&gt;</span>' + pretty(dest) + '</span>' : '<span class="from"><span class="ind">&lt;</span>' + pretty(l.from) + '</span>' : '') + '</span>' +
+					(age ? age > 10 ? '' :
+						'<span class="confirms">' + age + ' CONFIRMATIONS</span>' :
+						'<span class="unconfirmed">UNCONFIRMED</span>'
+					) +
+				'</li>';
+			}
+		}
+	}
+}
+
+updateGavCoinTxs = function() {
+	latest = gcTxWatch.messages();
+	refresh();
+}
+
+eth.watchChain().changed(refresh);
+
+</script>
+</body>
+</html>
