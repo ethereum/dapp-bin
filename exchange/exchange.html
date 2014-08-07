@@ -1,0 +1,502 @@
+<html>
+<head>
+<title>Ethereum General Exchange</title>
+<style>
+body {
+	font-family: Ubuntu, Tahoma, sans;
+	margin: 0;
+	background-color: #ccd;
+}
+h1 {
+	text-align: center;
+	font-size: large;
+	color: rgba(0,0,0, 0.75);
+	margin: 0;
+}
+div#orderbooks {
+	margin: 1em;
+}
+div#ourordersout {
+	margin: 1em;
+}
+div.orderbook {
+	border: none;
+	padding: 1em;
+	margin: 1em 0;
+	background: rgba(0,0,0, 0.05);
+}
+ul.orders {
+	list-style-type: none;
+	margin: 0;
+	margin-top: 4pt;
+	padding: 0;
+}
+
+.orders li:nth-child(even) {
+	background-color: rgba(0,0,0, 0.05);
+}
+
+div#top {
+	background-color: rgba(0,0,0,0.5);
+	color: white;
+	padding: 6pt;
+	text-shadow: 0px 0px 10px white;
+	border-radius: 0 0 6pt 6pt;
+}
+span.units {
+	font-size: small;
+	font-weight: bold;
+}
+li span.units {
+	padding: 0 4pt;
+}
+
+input#val {
+	width: 8em;
+}
+input#to {
+	width: 10em;
+}
+div#controls input {
+	background: rgba(255,255,255,0.25);
+	border: 2pt solid rgba(0,0,0,0.5); 
+}
+div#controls select {
+	background: rgba(255,255,255,0.25);
+	border: 2pt solid rgba(0,0,0,0.5); 
+}
+div#controls input.invalid {
+	background-color: #fcc;
+}
+div#controls input.maybevalid {
+	background-color: #fec;
+}
+div#controls button {
+	background: rgba(0,0,0,0.25);
+	border: 2pt solid rgba(0,0,0,0.5); 
+}
+button#mine {
+	float: right;
+}
+div#controls button.invalid {
+	background: transparent;
+	color: rgba(0,0,0,0.25);
+	border: 2px solid rgba(0,0,0,0.25);
+}
+div#controls {
+	text-align: center;
+	margin-top: 16pt;
+	padding: 16pt;
+	background-color: rgba(0,0,0, 0.05);
+}
+
+#orderhave, #orderwant {
+	width: 5em;
+}
+#placeorder {
+	margin-top: 3em;
+	border-top: 1px black solid;
+	padding-top: 1em;
+}
+
+li.order {
+	margin: 0;
+	border: 0;
+	clear: both;
+}
+li.order button {
+	float: right;
+}
+li.order button.delete {
+	background-color: #f88;	
+}
+li.order div {
+	padding: 6pt 0pt;
+	margin: 0pt 20pt;
+}
+li.order div span {
+	text-align: right
+}
+li.order span.margin {
+	width: 1em;
+	float: left;
+	background: #888 solid;
+	padding: 6pt 2pt;
+	text-align: center;
+}
+li.order.existing span.margin {
+	background-color: rgba(0,0,0,0.1);
+}
+li.order.existing {
+	color: rgba(0,0,0,0.2);
+}
+li.order.matching {
+	color: black;
+	background: rgba(255, 255, 255, 0.25);
+}
+li.order.matching span.margin {
+	background-color: #a84;
+}
+li.order.existing.best {
+	border-bottom: 4pt rgba(0,0,0,0.2) solid;
+}
+li.order.existing.best span.margin {
+	background-color: rgba(0,0,0,0.2);
+}
+li.order.matching.best {
+	border-top: 4pt #a44 solid;
+}
+li.order.matching.best span.margin {
+	background-color: #a44;
+}
+li.order span.want, div.order span.have {
+	margin-left: 4pt;
+	padding-left: 4pt;
+}
+li.order span.want {
+	width: 12em;
+	float: left;
+}
+li.order span.have {
+	width: 12em;
+	float: right;
+}
+li.order.existing span.have span.verb {
+	color: transparent;
+}
+li.order span.rate {
+	width: 12em;
+	float: left;
+}
+li.order.matching span.rate span.value {
+	text-shadow: 0pt 0pt 5pt #fff;
+	font-weight: bold;
+	color: #800;
+}
+</style>
+</head>
+<body>
+
+<div id="top">Ethereum General Exchange</div>
+
+<div id="ourordersout">
+	<div class="orderbook">
+		<h1>Orders</h1>
+		<ul id="ourorders" class="orders">
+		</ul>
+	</div>
+</div>
+
+<div id="orderbooks">
+</div>
+
+<div id="controls">
+<div>Want <input id="orderwant"></input> <select id="orderwantname"></select>, pay <input id="orderhave"></input> <select id="orderhavename"></select> <button id="approve" class="invalid">Approve</button><button id="execute">Execute</button></div>
+</div>
+
+<script>
+
+var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+
+var nameRegAddr;
+var coinsAddr;
+var exchangeAddr;
+
+var coinsWatch;
+var exchangeWatch;
+var updateExchange;
+var updateCoins;
+var updateApproveButton;
+
+var deleteOrder;
+
+var coins;
+
+var pretty = function(x) {
+	var ret = eth.stateAt(nameRegAddr, x, 0);
+	if (ret.dec() - 0)
+		return "<b>" + ret.bin() + "</b>";
+
+	return x.substr(2);
+}
+
+var refresh = function() {
+	nameRegAddr = eth.stateAt(configAddr, "0", 0);
+	var oC = coinsAddr;
+	coinsAddr = eth.stateAt(configAddr, "1", 0);
+	var oE = exchangeAddr;
+	exchangeAddr = eth.stateAt(configAddr, "3", 0);
+	
+	if (coinsAddr != oC)
+	{
+		if (coinsWatch)
+			coinsWatch.uninstall();
+		if (coinsAddr.bin().length)
+		{
+			coinsWatch = eth.watch({ altered: coinsAddr });
+			coinsWatch.changed(updateCoins);
+		}
+	}
+	if (exchangeAddr != oE)
+	{
+		if (exchangeWatch)
+			exchangeWatch.uninstall();
+		if (exchangeAddr.bin().length)
+		{
+			exchangeWatch = eth.watch({ altered: exchangeAddr });
+			exchangeWatch.changed(updateExchange);
+		}
+	}
+}
+
+var getCoins = function() {
+	var n = eth.stateAt(coinsAddr, 0);
+	var ret = { "ETH": { 'addr': '', 'denom': 1e18 } };
+	for (var i = 1; i <= n; ++i)
+		ret[eth.stateAt(coinsAddr, i).bin().unpad()] = { 'addr': eth.stateAt(coinsAddr, eth.stateAt(coinsAddr, i)), 'denom': eth.stateAt(coinsAddr, eth.sha3(eth.stateAt(coinsAddr, i))).dec()-0 || 1 };
+	return ret;
+}
+
+/// Get all of the order that are after some "have" currency in exchange for some "want" currency.
+var getOrderBook = function(have, want, addrs, dontCoalesce) {
+	var ret = [];
+	var haveAddr = coins[have].addr;
+	var wantAddr = coins[want].addr;
+	var list = eth.sha3(haveAddr.pad(32) + wantAddr.pad(32));
+	var haveFactor = coins[have].denom;
+	var wantFactor = coins[want].denom;
+	var last;
+	for (var s = eth.stateAt(exchangeAddr, list, 0); s.bin(); s = eth.stateAt(exchangeAddr, s, 0))
+	{
+		var id = eth.stateAt(exchangeAddr, eth.offset(s, 2), 0);
+		if (!addrs || addrs.indexOf(id) > -1)
+		{
+			var rateRaw = eth.stateAt(exchangeAddr, eth.offset(s, 1), 0);	// have/want
+			var rate = rateRaw.fix();	// have/want
+			var irate = 1.0 / rate;											// want/have
+			var wantRaw = eth.stateAt(exchangeAddr, eth.offset(s, 3), 0);
+			var haveRaw = wantRaw.dec() * rate;
+			var wantApparent = Math.round(wantRaw / wantFactor * 1000000) / 1000000;
+			var haveApparent = Math.round(haveRaw / haveFactor * 1000000) / 1000000;
+			var rateApparent = Math.round(rate * wantFactor / haveFactor * 1000000) / 1000000;
+			var irateApparent = Math.round(irate * haveFactor / wantFactor * 1000000) / 1000000;
+		
+			if (!dontCoalesce && last && last.rate == rate)
+			{
+				last.haveRaw += haveRaw;
+				last.wantRaw += wantRaw;
+				last.haveApparent += haveApparent;
+				last.wantApparent += wantApparent;
+			}
+			else
+			{
+				if (last)
+					ret.push(last);
+				last = {'rateRaw': rateRaw, 'rate': rate, 'irate': irate, 'haveRaw': haveRaw, 'wantRaw': wantRaw, 'haveApparent': haveApparent, 'wantApparent': wantApparent, 'rateApparent': rateApparent, 'irateApparent': irateApparent, 'id': id};
+				env.note(last.rateRaw);
+			}
+		}
+	}
+	if (last)
+		ret.push(last);
+	return ret;
+}
+
+var getQuote = function(matches, w, inv) {
+	var n = 0;
+	for (var i in matches)
+	{
+		var m = matches[i];
+		if (inv)
+		{
+			if (w <= m.wantApparent)	//got enough here
+			{
+				n += w * m.rateApparent;
+				return n;
+			}
+			n += m.haveApparent;
+			w -= m.wantApparent;
+		}
+		else
+		{
+			if (w <= m.haveApparent)	//got enough here
+			{
+				n += w * m.irateApparent;
+				return n;
+			}
+			n += m.wantApparent;
+			w -= m.haveApparent;
+		}
+	}
+	return null;
+}
+
+var updateQuote = function() {
+	var ob = getOrderBook(document.getElementById('orderwantname').value, document.getElementById('orderhavename').value);
+	var q = getQuote(ob, document.getElementById('orderwant').value);
+	document.getElementById('orderhave').placeholder = q ? q : "No Liquidity";
+	var pq = getQuote(ob, document.getElementById('orderhave').value, 1);
+	document.getElementById('orderwant').placeholder = pq ? pq : "No Liquidity";
+	
+	// TODO: check balances & highlight bad fields.
+}
+
+var updateHaveSelection = function() {
+	var haveName = document.getElementById('orderhavename').value;
+	var wantName = document.getElementById('orderwantname').value;
+	document.getElementById("orderhavename").innerHTML = "";
+	for (var i in coins)
+		if (i != wantName)
+			document.getElementById("orderhavename").innerHTML += '<option ' + (i == haveName ? "selected " : "") + 'id="orderhave' + i + '">' + i + '</option>';
+}
+
+var execute = function() {
+	var haveName = document.getElementById('orderhavename').value;
+	var have = (document.getElementById('orderhave').value || document.getElementById('orderhave').placeholder) * coins[haveName].denom;
+	var wantName = document.getElementById('orderwantname').value;
+	var want = (document.getElementById('orderwant').value || document.getElementById('orderwant').placeholder) * coins[wantName].denom;
+	eth.transact({ 'to': exchangeAddr, 'value': (haveName == "ETH" ? have+'' : '0'	), 'data': [ 'new', coins[haveName].addr, have+'', coins[wantName].addr, want+'' ] });
+}
+
+var approve = function() {
+	var addr = coins[document.getElementById('orderhavename').value].addr;
+	if (en)
+		for (var k in eth.keys)
+			eth.transact({'from': k, 'to': addr, data: ['approve', exchangeAddr]});
+	updateApproveButton();
+}
+
+document.getElementById('orderhave').oninput = document.getElementById('orderwant').oninput = updateQuote;
+document.getElementById('orderhavename').onchange = function() { updateApproveButton(); updateQuote(); };
+document.getElementById('orderwantname').onchange = function() { updateHaveSelection(); updateQuote(); };
+document.getElementById('execute').onclick = execute;
+document.getElementById('approve').onclick = approve;
+
+var renderOurs = function(have, want) {
+	var haveAddr = coins[have].addr;
+	var wantAddr = coins[want].addr;
+	var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+	var others = getOrderBook(have, want, myAddrs, true);
+	var oret = '';
+	for (var i in others)
+	{
+		var s = others[i];
+		oret += '<li class="our order">' +
+			'<span class="margin">&nbsp;</span><button class="delete" onclick="deleteOrder(\'' + haveAddr + '\',\'' + wantAddr + '\',\'' + s.rateRaw + '\',\'' + s.id + '\')">delete</button><div class="body">&nbsp;'+
+			'<span class="have"><span class="value">' + s.haveApparent + '</span> <span class="units">' + have + '</span> <span class="verb">offered</span></span>'+
+			'<span class="want">' + s.wantApparent + ' <span class="units">' + want + '</span> <span class="verb">wanted</span></span>'+
+			'<span class="rate"><span class="verb">at</span> <span class="value">' + s.irateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
+			'</div></li>';
+	}
+	return oret;
+}
+
+var renderExchange = function(have, want) {
+	var matches = getOrderBook(want, have);		
+	var others = getOrderBook(have, want);		
+	if (!matches.length && !others.length)
+		return;
+	var oret = '';
+	for (var i in others)
+	{
+		var s = others[i];
+		oret += '<li class="existing order' + (i-0 ? '' : ' best') + '">' +
+			'<span class="margin">&nbsp;</span><div class="body">&nbsp;'+
+			'<span class="have"><span class="value">' + s.haveApparent + '</span> <span class="units">' + have + '</span> <span class="verb">total</span></span>'+
+			'<span class="want">' + s.wantApparent + ' <span class="units">' + want + '</span></span>'+
+			'<span class="rate"><span class="verb">at</span> <span class="value">' + s.irateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
+			'</div></li>';
+		if (i-0 >= 10)
+			break;
+	}
+	c = 0;
+	for (var i in matches)
+	{
+		var s = matches[i];
+		oret += '<li class="matching order' + (i-0 ? '' : ' best') + '">' +
+			'<span class="margin">' + (i-0 ? '&nbsp;' : '&#9660;') + '</span><div class="body">&nbsp;'+
+			'<span class="have"><span class="value">' + s.wantApparent + '</span> <span class="units">' + have + '</span> <span class="verb">total</span></span>'+
+			'<span class="want">' + s.haveApparent + ' <span class="units">' + want + '</span></span>'+
+			'<span class="rate"><span class="verb">at</span> <span class="value">' + s.rateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
+			'</div></li>';
+	}
+	oret = '<ul class="orders">' + oret + '</ul>';
+	return '<div class="orderbook"><h1>' + have + '<span style="color: rgba(0, 0, 0, 0.5); position: relative; top: -1.5pt; margin-left: 4pt; margin-right: 4pt;">&#9658;</span>' + want + '</h1>' + oret + '</div>';
+}
+
+// TODO display all transactions.
+
+updateCoins = function() {
+	coins = getCoins();
+
+	var a = false;
+	for (var i in coins)
+	{
+		if (!document.getElementById("orderwant" + i))
+		{
+			document.getElementById("orderwantname").innerHTML += '<option id="orderwant' + i + '">' + i + '</option>';
+			a = true;
+		}
+		if (!document.getElementById("orderhave" + i) && i != document.getElementById('orderwantname').value)
+		{
+			document.getElementById("orderhavename").innerHTML += '<option id="orderhave' + i + '">' + i + '</option>';
+			a = true;
+		}
+	}
+	
+	if (a)
+	{
+		updateExchange();
+		updateHaveSelection();
+		updateApproveButton();
+		updateQuote();
+	}
+}
+
+updateApproveButton = function() {
+	var addr = coins[document.getElementById('orderhavename').value].addr;
+	var en = !addr.bin();
+	if (en)
+		for (var k in eth.keys)
+			en = en && eth.call({'from': k, 'to': addr, data: ['approved', exchangeAddr]}).bin();
+	document.getElementById("approve").classList = en ? [] : ['invalid'];
+	document.getElementById("execute").classList = en ? ['invalid'] : [];
+}
+
+updateExchange = function() {
+	// update the display
+	
+	document.getElementById("orderbooks").innerHTML = "";
+	document.getElementById("ourorders").innerHTML = "";
+	
+	for (var i in coins)
+		for (var j in coins)
+			if (i != j)
+			{
+				document.getElementById("orderbooks").innerHTML += renderExchange(i, j);
+				document.getElementById("ourorders").innerHTML += renderOurs(i, j);
+			}
+}
+
+deleteOrder = function(have, want, rate, who) {
+	env.note(have + " " + want + " " + rate + " " + who);
+	for (var i in eth.keys)
+	{
+		var k = eth.keys[i];
+		if (eth.secretToAddress(k) == who)
+			eth.transact({'from': k, 'to': exchangeAddr, 'data': ['delete', have+'', want+'', rate]});
+	}
+}
+
+
+//approve contract
+//approved contract[, person]
+
+//delete have want rate
+
+eth.watchChain().changed(refresh);
+
+</script>
+</body>
+</html>

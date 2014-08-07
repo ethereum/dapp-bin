@@ -1,0 +1,118 @@
+{
+[0] 'register
+[32] 'Exchange
+(msg allgas 0x50441127ea5b9dfd835a9aba4e1dc9c1257b58ca 0 0 64)
+
+(def 'min (a b) (if (< a b) a b))
+
+(def 'head (_list) @@ _list)
+(def 'next (_item) @@ _item)
+(def 'inc (itemref) [itemref]: (next @itemref))
+(def 'rateof (_item) @@ (+ _item 1))
+(def 'idof (_item) @@ (+ _item 2))
+(def 'wantof (_item) @@ (+ _item 3))
+(def 'newitem (rate who want list) {
+	(set 'pos (sha3trip rate who list))
+	[[ (+ @pos 1) ]] rate
+	[[ (+ @pos 2) ]] who
+	[[ (+ @pos 3) ]] want
+	@pos
+})
+(def 'stitchitem (parent pos) {
+	[[ pos ]] @@ parent
+	[[ parent ]] pos
+})
+(def 'addwant (_item amount) [[ (+ _item 3) ]] (+ @@ (+ _item 3) amount))
+(def 'deductwant (_item amount) [[ (+ _item 3) ]] (- @@ (+ _item 3) amount))
+
+(def 'xfer (contract to amount)
+	(if contract {
+		[0] 'send
+		[32] to
+		[64] amount
+		(msg allgas contract 0 0 96)
+	}
+		(send to amount)
+	)
+)
+
+(def 'fpdiv (a b) (/ (+ (/ b 2) (* a (exp 2 128))) b))
+(def 'fpmul (a b) (/ (* a b) (exp 2 128)) )
+
+(returnlll {
+	(when (= $0 'new) {
+		(set 'offer $32)
+		(set 'xoffer (if @offer $64 (callvalue)))
+		(set 'want $96)
+		(set 'xwant $128)
+		(set 'rate (fpdiv @xoffer @xwant))
+		(set 'irate (fpdiv @xwant @xoffer))
+
+		(unless (&& @rate @irate @xoffer @xwant) (stop))
+
+		(when @offer {
+			(set 'arg1 'send)
+			(set 'arg2 (address))
+			(set 'arg3 @xoffer)
+			(set 'arg4 (caller))
+			(unless (msg allgas @offer 0 arg1 128) (stop))
+		})
+		(set 'list (sha3pair @offer @want))
+		(set 'ilist (sha3pair @want @offer))
+
+		(set 'last @ilist)
+		(set 'item @@ @last)
+		
+		(for {} (&& @item (>= (rateof @item) @irate)) {} {
+			(set 'offerA (min @xoffer (wantof @item)))
+			(set 'wantA (fpmul @offerA (rateof @item)))
+
+			(set 'xoffer (- @xoffer @offerA))
+			(set 'xwant (- @xwant @wantA))
+
+			(deductwant @item @offerA)
+
+			(xfer @offer (idof @item) @offerA)
+			(xfer @want (caller) @wantA)
+
+			(unless @xoffer (stop))
+
+			(set 'item @@ @item)
+			[[ @last ]] @item
+		})
+
+		(set 'last @list)
+		(set 'item @@ @last)
+		
+		(set 'newpos (newitem @rate (caller) @xwant @list))
+
+		(for {} (&& @item (!= @item @newpos) (>= (rateof @item) @rate)) { (set 'last @item) (inc item) } {})
+		(if (= @item @newpos)
+			(addwant @item @wantx)
+			(stitchitem @last @newpos)
+		)
+		(stop)
+	})
+	(when (= $0 'delete) {
+		(set 'offer $32)
+		(set 'want $64)
+		(set 'rate $96)
+		(set 'list (sha3pair @offer @want))
+		(set 'last @list)
+		(set 'item @@ @last)
+		(for {} (&& @item (!= (idof @item) (caller)) (!= (rateof @item) @rate)) { (set 'last @item) (inc item) } {})
+		(when @item {
+			(set 'xoffer (fpmul (wantof @item) (rateof @item)))
+			[[ @last ]] @@ @item
+			(xfer @offer (caller) @xoffer)
+		})
+		(stop)
+	})
+	(when (= $0 'price) {
+		(set 'offer $32)
+		(set 'want $96)
+		(set 'item (head (sha3pair @offer @want)))
+		(return (if @item (rateof @list) 0))
+	})
+})
+}
