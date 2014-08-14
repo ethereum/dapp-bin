@@ -221,7 +221,7 @@ var checkto = function() {
 	}
 	else
 	{
-		var dest = eth.stateAt(nameRegAddr, to, 0);
+		var dest = eth.stateAt(nameRegAddr, eth.fromAscii(to), 0);
 		if (+eth.toDecimal(dest))
 			s = "valid";
 		else
@@ -244,10 +244,10 @@ var totalGav = function() {
 
 var checkvalue = function() {
 	var s = "";
-	var amount = document.getElementById('val').value;
+	var amount = +document.getElementById('val').value;
 	var tg = totalGav();
-	if (amount - 0 > 0 && amount - 0 <= tg[1])
-		if (amount - 0 <= tg[0])
+	if (amount > 0 && amount <= tg[1])
+		if (amount <= tg[0])
 			s = "valid";
 		else
 			s = "maybevalid";
@@ -258,7 +258,7 @@ var checkvalue = function() {
 	}
 	document.getElementById('val').className = s;
 	document.getElementById('send').className = (document.getElementById('val').className != "invalid" && document.getElementById('to').className != "invalid") ? "valid" : "invalid";
-	return amount;
+	return (amount * 1000) + '';
 }
 
 document.getElementById('val').oninput = checkvalue; 
