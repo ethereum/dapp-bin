@@ -319,7 +319,7 @@ var refresh = function() {
 	
 	var cv = checkvalue();
 	var ct = checkto();
-	var blocksToMine = eth.number.dec() - eth.toDecimal(eth.stateAt(gavCoinAddr, "0x42", 0));
+	var blocksToMine = eth.toDecimal(eth.number) - eth.toDecimal(eth.stateAt(gavCoinAddr, "0x42", 0));
 	document.getElementById('mine').className = (blocksToMine ? "valid" : "invalid");
 	document.getElementById('mine').innerHTML = blocksToMine == 1 ? "mine" : "mine " + blocksToMine;
 	document.getElementById('addr').innerHTML = myAddrs[0].substr(2);
@@ -333,7 +333,7 @@ var refresh = function() {
 	for (var i = 0; i < latest.length; ++i)
 	{
 		var l = latest[/*s -*/ i];
-		if (l.to != "".pad(20).unbin())
+		if (+eth.toDecimal(l.to))
 		{
 			var mine = !+eth.toDecimal(l.input) || eth.toAscii(l.input).substr(0, 4) == "mine";
 			var send = eth.toAscii(l.input).substr(0, 4) == "send";

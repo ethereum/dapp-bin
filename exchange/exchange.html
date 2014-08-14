@@ -228,7 +228,7 @@ var refresh = function() {
 	var oE = exchangeAddr;
 	exchangeAddr = eth.stateAt(configAddr, "3", 0);
 	
-	env.note(coinsAddr + "/" + oC + "/" + exchangeAddr + "/" + oE + "/" + nameRegAddr);
+//	env.note(coinsAddr + "/" + oC + "/" + exchangeAddr + "/" + oE + "/" + nameRegAddr);
 	if (coinsAddr != oC)
 	{
 		if (coinsWatch)
@@ -259,7 +259,7 @@ var getCoins = function() {
 		var name = eth.toAscii(eth.stateAt(coinsAddr, i));
 		var addr = eth.stateAt(coinsAddr, eth.stateAt(coinsAddr, i));
 		var denom = +eth.toDecimal(eth.stateAt(coinsAddr, eth.sha3(eth.stateAt(coinsAddr, i)))) || 1;
-		env.note(n + ":" + name + "/" + addr + "/" + denom);
+//		env.note(n + ":" + name + "/" + addr + "/" + denom);
 		ret[name] = { 'addr': addr, 'denom': denom };
 	}
 	return ret;
@@ -437,10 +437,10 @@ var renderExchange = function(have, want) {
 // TODO display all transactions.
 
 updateCoins = function() {
-	env.note("updateCoins");
+//	env.note("updateCoins");
 	coins = getCoins();
 
-	env.note(JSON.stringify(coins));
+//	env.note(JSON.stringify(coins));
 	var a = false;
 	for (var i in coins)
 	{
