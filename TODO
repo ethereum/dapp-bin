@@ -1,0 +1,5 @@
+* Standard documentation & API spec format for the backend (contract) portion of the DApps.
+  - This should double as translatable, templatable transaction-description language, so people can audit and know what a transaction /actually/ does.
+* Toolkit for generating this from an LLL atom.
+e.g. (class ('register ('param1 'param2) { CODE TO EXECUTE FOR REGISTER, uses params }) ( other methods ) )
+* Toolkit for calling into shared code that uses the state - e.g. linked list code, string handling code. So much better than baking it into each contract.
