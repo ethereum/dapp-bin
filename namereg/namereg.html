@@ -35,7 +35,7 @@ regName = function()
 {
 	var name = document.getElementById("regname").value;
 	if (name != "")
-			eth.transact({ 'to': nameRegAddr, 'data': [ "register", name.unbin() ] });
+			eth.transact({ 'to': nameRegAddr, 'data': [ "register", name ] });
 	else{}
 }
 regDomain = function()
@@ -67,10 +67,7 @@ lookupAddr = function()
 <body id="abId0.7690352932550013">
 <h1>NameReg</h1>
 <h2>Lookup</h2>
-<table>
-<tbody id="abId0.924682306824252"><tr id="abId0.4536155476234853"><td><label for="name">Name: </label></td><td id="abId0.17639184789732099"><input id="name" type="text" value="" onkeyup="lookupName()"></td></tr>
-<tr id="abId0.6028991765342653"><td><label for="addr">Address: </label></td><td id="abId0.5731069270987064"><input id="addr" type="text" value="" onkeyup="lookupAddr()"></td></tr>
-</tbody></table>
+<div><label for="name">Name: </label><input id="name" type="text" value="" onkeyup="lookupName()"><label for="addr">Address: </label><input id="addr" type="text" value="" onkeyup="lookupAddr()"></div>
 <h2>Register Name</h2>
 <div><label for="name">Name: </label><input id="regname" type="text" value=""><button onclick="regName()">Register</button></div>
 <h2>Register Domain</h2>

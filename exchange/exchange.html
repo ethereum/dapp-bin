@@ -32,7 +32,7 @@ ul.orders {
 	padding: 0;
 }
 
-.orders li:nth-child(even) {
+.our.orders li:nth-child(even) {
 	background-color: rgba(0,0,0, 0.05);
 }
 
@@ -215,8 +215,8 @@ var coins;
 
 var pretty = function(x) {
 	var ret = eth.stateAt(nameRegAddr, x, 0);
-	if (ret.dec() - 0)
-		return "<b>" + ret.bin() + "</b>";
+	if (+eth.toDecimal(ret))
+		return "<b>" + eth.toAscii(ret) + "</b>";
 
 	return x.substr(2);
 }
@@ -228,21 +228,22 @@ var refresh = function() {
 	var oE = exchangeAddr;
 	exchangeAddr = eth.stateAt(configAddr, "3", 0);
 	
+	env.note(coinsAddr + "/" + oC + "/" + exchangeAddr + "/" + oE + "/" + nameRegAddr);
 	if (coinsAddr != oC)
 	{
 		if (coinsWatch)
 			coinsWatch.uninstall();
-		if (coinsAddr.bin().length)
+		if (+eth.toDecimal(coinsAddr))
 		{
 			coinsWatch = eth.watch({ altered: coinsAddr });
 			coinsWatch.changed(updateCoins);
 		}
 	}
 	if (exchangeAddr != oE)
-	{
+	{eth.stateAt(coinsAddr, 1)
 		if (exchangeWatch)
 			exchangeWatch.uninstall();
-		if (exchangeAddr.bin().length)
+		if (+eth.toDecimal(exchangeAddr))
 		{
 			exchangeWatch = eth.watch({ altered: exchangeAddr });
 			exchangeWatch.changed(updateExchange);
@@ -254,7 +255,13 @@ var getCoins = function() {
 	var n = eth.stateAt(coinsAddr, 0);
 	var ret = { "ETH": { 'addr': '', 'denom': 1e18 } };
 	for (var i = 1; i <= n; ++i)
-		ret[eth.stateAt(coinsAddr, i).bin().unpad()] = { 'addr': eth.stateAt(coinsAddr, eth.stateAt(coinsAddr, i)), 'denom': eth.stateAt(coinsAddr, eth.sha3(eth.stateAt(coinsAddr, i))).dec()-0 || 1 };
+	{
+		var name = eth.toAscii(eth.stateAt(coinsAddr, i));
+		var addr = eth.stateAt(coinsAddr, eth.stateAt(coinsAddr, i));
+		var denom = +eth.toDecimal(eth.stateAt(coinsAddr, eth.sha3(eth.stateAt(coinsAddr, i)))) || 1;
+		env.note(n + ":" + name + "/" + addr + "/" + denom);
+		ret[name] = { 'addr': addr, 'denom': denom };
+	}
 	return ret;
 }
 
@@ -263,20 +270,20 @@ var getOrderBook = function(have, want, addrs, dontCoalesce) {
 	var ret = [];
 	var haveAddr = coins[have].addr;
 	var wantAddr = coins[want].addr;
-	var list = eth.sha3(haveAddr.pad(32) + wantAddr.pad(32));
+	var list = eth.sha3(haveAddr, wantAddr);
 	var haveFactor = coins[have].denom;
 	var wantFactor = coins[want].denom;
 	var last;
-	for (var s = eth.stateAt(exchangeAddr, list, 0); s.bin(); s = eth.stateAt(exchangeAddr, s, 0))
+	for (var s = eth.stateAt(exchangeAddr, list, 0); +eth.toDecimal(s); s = eth.stateAt(exchangeAddr, s, 0))
 	{
 		var id = eth.stateAt(exchangeAddr, eth.offset(s, 2), 0);
 		if (!addrs || addrs.indexOf(id) > -1)
 		{
 			var rateRaw = eth.stateAt(exchangeAddr, eth.offset(s, 1), 0);	// have/want
-			var rate = rateRaw.fix();	// have/want
+			var rate = eth.fromFixed(rateRaw);	// have/want
 			var irate = 1.0 / rate;											// want/have
 			var wantRaw = eth.stateAt(exchangeAddr, eth.offset(s, 3), 0);
-			var haveRaw = wantRaw.dec() * rate;
+			var haveRaw = eth.toDecimal(wantRaw) * rate;
 			var wantApparent = Math.round(wantRaw / wantFactor * 1000000) / 1000000;
 			var haveApparent = Math.round(haveRaw / haveFactor * 1000000) / 1000000;
 			var rateApparent = Math.round(rate * wantFactor / haveFactor * 1000000) / 1000000;
@@ -294,7 +301,6 @@ var getOrderBook = function(have, want, addrs, dontCoalesce) {
 				if (last)
 					ret.push(last);
 				last = {'rateRaw': rateRaw, 'rate': rate, 'irate': irate, 'haveRaw': haveRaw, 'wantRaw': wantRaw, 'haveApparent': haveApparent, 'wantApparent': wantApparent, 'rateApparent': rateApparent, 'irateApparent': irateApparent, 'id': id};
-				env.note(last.rateRaw);
 			}
 		}
 	}
@@ -382,12 +388,13 @@ var renderOurs = function(have, want) {
 	for (var i in others)
 	{
 		var s = others[i];
-		oret += '<li class="our order">' +
-			'<span class="margin">&nbsp;</span><button class="delete" onclick="deleteOrder(\'' + haveAddr + '\',\'' + wantAddr + '\',\'' + s.rateRaw + '\',\'' + s.id + '\')">delete</button><div class="body">&nbsp;'+
-			'<span class="have"><span class="value">' + s.haveApparent + '</span> <span class="units">' + have + '</span> <span class="verb">offered</span></span>'+
-			'<span class="want">' + s.wantApparent + ' <span class="units">' + want + '</span> <span class="verb">wanted</span></span>'+
-			'<span class="rate"><span class="verb">at</span> <span class="value">' + s.irateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
-			'</div></li>';
+		if (+s.haveRaw)
+			oret += '<li class="our order">' +
+				'<span class="margin">&nbsp;</span><button class="delete" onclick="deleteOrder(\'' + haveAddr + '\',\'' + wantAddr + '\',\'' + s.rateRaw + '\',\'' + s.id + '\')">delete</button><div class="body">&nbsp;'+
+				'<span class="have"><span class="value">' + s.haveApparent + '</span> <span class="units">' + have + '</span> <span class="verb">offered</span></span>'+
+				'<span class="want">' + s.wantApparent + ' <span class="units">' + want + '</span> <span class="verb">wanted</span></span>'+
+				'<span class="rate"><span class="verb">at</span> <span class="value">' + s.irateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
+				'</div></li>';
 	}
 	return oret;
 }
@@ -396,17 +403,18 @@ var renderExchange = function(have, want) {
 	var matches = getOrderBook(want, have);		
 	var others = getOrderBook(have, want);		
 	if (!matches.length && !others.length)
-		return;
+		return '';
 	var oret = '';
 	for (var i in others)
 	{
 		var s = others[i];
-		oret += '<li class="existing order' + (i-0 ? '' : ' best') + '">' +
-			'<span class="margin">&nbsp;</span><div class="body">&nbsp;'+
-			'<span class="have"><span class="value">' + s.haveApparent + '</span> <span class="units">' + have + '</span> <span class="verb">total</span></span>'+
-			'<span class="want">' + s.wantApparent + ' <span class="units">' + want + '</span></span>'+
-			'<span class="rate"><span class="verb">at</span> <span class="value">' + s.irateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
-			'</div></li>';
+		if (+s.haveRaw)
+			oret = '<li class="existing order' + (i-0 ? '' : ' best') + '">' +
+				'<span class="margin">&nbsp;</span><div class="body">&nbsp;'+
+				'<span class="have"><span class="value">' + s.haveApparent + '</span> <span class="units">' + have + '</span> <span class="verb">total</span></span>'+
+				'<span class="want">' + s.wantApparent + ' <span class="units">' + want + '</span></span>'+
+				'<span class="rate"><span class="verb">at</span> <span class="value">' + s.irateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
+				'</div></li>' + oret;
 		if (i-0 >= 10)
 			break;
 	}
@@ -414,12 +422,13 @@ var renderExchange = function(have, want) {
 	for (var i in matches)
 	{
 		var s = matches[i];
-		oret += '<li class="matching order' + (i-0 ? '' : ' best') + '">' +
-			'<span class="margin">' + (i-0 ? '&nbsp;' : '&#9660;') + '</span><div class="body">&nbsp;'+
-			'<span class="have"><span class="value">' + s.wantApparent + '</span> <span class="units">' + have + '</span> <span class="verb">total</span></span>'+
-			'<span class="want">' + s.haveApparent + ' <span class="units">' + want + '</span></span>'+
-			'<span class="rate"><span class="verb">at</span> <span class="value">' + s.rateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
-			'</div></li>';
+		if (+s.haveRaw)
+			oret += '<li class="matching order' + (i-0 ? '' : ' best') + '">' +
+				'<span class="margin">' + (i-0 ? '&nbsp;' : '&#9660;') + '</span><div class="body">&nbsp;'+
+				'<span class="have"><span class="value">' + s.wantApparent + '</span> <span class="units">' + have + '</span> <span class="verb">total</span></span>'+
+				'<span class="want">' + s.haveApparent + ' <span class="units">' + want + '</span></span>'+
+				'<span class="rate"><span class="verb">at</span> <span class="value">' + s.rateApparent + '</span> <span class="units">' + want + '/' + have + '</span></span>'+
+				'</div></li>';
 	}
 	oret = '<ul class="orders">' + oret + '</ul>';
 	return '<div class="orderbook"><h1>' + have + '<span style="color: rgba(0, 0, 0, 0.5); position: relative; top: -1.5pt; margin-left: 4pt; margin-right: 4pt;">&#9658;</span>' + want + '</h1>' + oret + '</div>';
@@ -428,8 +437,10 @@ var renderExchange = function(have, want) {
 // TODO display all transactions.
 
 updateCoins = function() {
+	env.note("updateCoins");
 	coins = getCoins();
 
+	env.note(JSON.stringify(coins));
 	var a = false;
 	for (var i in coins)
 	{
@@ -456,10 +467,10 @@ updateCoins = function() {
 
 updateApproveButton = function() {
 	var addr = coins[document.getElementById('orderhavename').value].addr;
-	var en = !addr.bin();
+	var en = !+eth.toDecimal(addr);
 	if (en)
 		for (var k in eth.keys)
-			en = en && eth.call({'from': k, 'to': addr, data: ['approved', exchangeAddr]}).bin();
+			en = en && +eth.toDecimal(eth.call({'from': k, 'to': addr, data: ['approved', exchangeAddr]}));
 	document.getElementById("approve").classList = en ? [] : ['invalid'];
 	document.getElementById("execute").classList = en ? ['invalid'] : [];
 }
@@ -480,7 +491,6 @@ updateExchange = function() {
 }
 
 deleteOrder = function(have, want, rate, who) {
-	env.note(have + " " + want + " " + rate + " " + who);
 	for (var i in eth.keys)
 	{
 		var k = eth.keys[i];
@@ -495,7 +505,7 @@ deleteOrder = function(have, want, rate, who) {
 
 //delete have want rate
 
-eth.watchChain().changed(refresh);
+eth.watch("chain").changed(refresh);
 
 </script>
 </body>

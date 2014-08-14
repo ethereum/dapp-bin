@@ -214,7 +214,7 @@ var checkto = function() {
 	if (to.length == 40)
 	{
 		dest = "0x" + to;
-		if (eth.balanceAt(dest, 0).dec() > 0)
+		if (+eth.toDecimal(eth.balanceAt(dest, 0)))
 			s = "valid";
 		else
 			s = "maybevalid";
@@ -222,7 +222,7 @@ var checkto = function() {
 	else
 	{
 		var dest = eth.stateAt(nameRegAddr, to, 0);
-		if (dest.dec() - 0)
+		if (+eth.toDecimal(dest))
 			s = "valid";
 		else
 		{
@@ -238,7 +238,7 @@ var checkto = function() {
 var totalGav = function() {
 	var confirmedGav = 0;
 	var unconfirmedGav = 0;
-	myAddrs.forEach(function(x) { confirmedGav -=- eth.stateAt(gavCoinAddr, x, -1).dec(); unconfirmedGav -=- eth.stateAt(gavCoinAddr, x, 0).dec(); });
+	myAddrs.forEach(function(x) { confirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
 	return [confirmedGav, unconfirmedGav];
 }
 
@@ -273,13 +273,12 @@ var dosend = function() {
 		eth.keys.forEach(function(x) {
 			if (l)
 			{
-				var t = +eth.stateAt(gavCoinAddr, eth.secretToAddress(x), 0).dec();
+				var t = +eth.toDecimal(eth.stateAt(gavCoinAddr, eth.secretToAddress(x), 0));
 				if (t > l)
 					t = l;
 				if (t)
 				{
-					var data = 'send'.pad(32) + to.pad(32) + (t + "").pad(32);
-					eth.transact(x, "0", gavCoinAddr, data, "2000", eth.gasPrice);
+					eth.transact({'from': x, 'to': gavCoinAddr, 'data': ['send', to, t + ''], 'gas': '2000', 'gasPrice': eth.gasPrice});
 					l -= t;
 				}
 			}
@@ -287,13 +286,12 @@ var dosend = function() {
 	}
 }
 var domine = function() {
-	for (var i = 0; i < 5 && eth.stateAt(gavCoinAddr, "0x42", 0).dec() != eth.number.dec(); ++i)
-		eth.transact(eth.key, "0", gavCoinAddr, "", "2000", eth.gasPrice);
+	eth.transact({ 'to': gavCoinAddr });
 }
 var pretty = function(x) {
 	var ret = eth.stateAt(nameRegAddr, x, 0);
-	if (ret.dec() - 0)
-		return "<b>" + ret.bin() + "</b>";
+	if (eth.toDecimal(ret) - 0)
+		return "<b>" + eth.toAscii(ret) + "</b>";
 
 	return x.substr(2);
 }
@@ -311,9 +309,9 @@ var refresh = function() {
 	{
 		if (gcTxWatch)
 			gcTxWatch.uninstall();
-		if (gavCoinAddr.bin().length)
+		if (eth.toDecimal(gavCoinAddr))
 		{
-			gcTxWatch = eth.watch({max: 15, altered: myAddrs.map(function (a) { return { id: gavCoinAddr, at: a } }) });
+			gcTxWatch = eth.watch({'max': 15, 'altered': myAddrs.map(function (a) { return { 'id': gavCoinAddr, 'at': a } }) });
 			gcTxWatch.changed(updateGavCoinTxs);
 			return;	// refresh will be called by the above - no need to repeat.
 		}
@@ -321,14 +319,14 @@ var refresh = function() {
 	
 	var cv = checkvalue();
 	var ct = checkto();
-	var blocksToMine = eth.number.dec() - eth.stateAt(gavCoinAddr, "0x42", 0).dec();
+	var blocksToMine = eth.number.dec() - eth.toDecimal(eth.stateAt(gavCoinAddr, "0x42", 0));
 	document.getElementById('mine').className = (blocksToMine ? "valid" : "invalid");
 	document.getElementById('mine').innerHTML = blocksToMine == 1 ? "mine" : "mine " + blocksToMine;
 	document.getElementById('addr').innerHTML = myAddrs[0].substr(2);
 	var confirmedGav = 0;
 	var unconfirmedGav = 0;
-	myAddrs.forEach(function(x) { confirmedGav -=- eth.stateAt(gavCoinAddr, x, -1).dec(); unconfirmedGav -=- eth.stateAt(gavCoinAddr, x, 0).dec(); });
-	document.getElementById('gav').innerHTML = (unconfirmedGav > confirmedGav ? confirmedGav + '<span id="unc"> (+ <span>' + (unconfirmedGav - confirmedGav) + "</span> unconfirmed)</span>" : unconfirmedGav);
+	myAddrs.forEach(function(x) { confirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
+	document.getElementById('gav').innerHTML = (unconfirmedGav > confirmedGav ? confirmedGav / 1000 + '<span id="unc"> (+ <span>' + (unconfirmedGav - confirmedGav) / 1000 + "</span> unconfirmed)</span>" : unconfirmedGav / 1000);
 	var lh = document.getElementById("latest");
 	lh.innerHTML = "";
 	var s = latest.length - 1;
@@ -337,22 +335,22 @@ var refresh = function() {
 		var l = latest[/*s -*/ i];
 		if (l.to != "".pad(20).unbin())
 		{
-			var mine = l.input.bin() == "" || l.input.bin().substr(0, 4) == "mine";
-			var send = l.input.bin().substr(0, 4) == "send";
+			var mine = !+eth.toDecimal(l.input) || eth.toAscii(l.input).substr(0, 4) == "mine";
+			var send = eth.toAscii(l.input).substr(0, 4) == "send";
 			if (mine || send)
 			{
 				var dest;
 				if (send)
-					dest = l.input.bin().substr(44, 20).unbin();
-				var wesent = myAddrs.indexOf(l.from) != -1 || (l.input.bin().length > 96 && myAddrs.indexOf(l.origin) != -1);
+					dest = "0x" + l.input.substr(90, 40);
+				var wesent = myAddrs.indexOf(l.from) != -1 || (l.input.length > 96 * 2 + 2 && myAddrs.indexOf(l.origin) != -1);
 				var wegot = myAddrs.indexOf(dest) != -1;
-				var value = mine ? l.output.dec() * 1000 * ((myAddrs.indexOf(l.coinbase) != -1 ? 1 : 0) + (myAddrs.indexOf(l.from) != -1 ? 1 : 0)) : l.input.bin().substr(64, 32).unbin().dec();
+				var value = mine ? eth.toDecimal(l.output) * 1000 * ((myAddrs.indexOf(l.coinbase) != -1 ? 1 : 0) + (myAddrs.indexOf(l.from) != -1 ? 1 : 0)) : eth.toDecimal("0x" + l.input.substr(130, 64));
 				var age = eth.number - l.number;
 //				env.note(eth.number + " " + l.number + " " + age);
 				lh.innerHTML = lh.innerHTML + '<li>' +
 					'<span class="timestamp">' + new Date(l.timestamp * 1000).toLocaleString() + "</span>" +
 					(mine ? '<span class="mine"><span class="name">MINE' : wesent ? wegot ? '<span class="xfer"><span class="name">XFER' : '<span class="out"><span class="name">OUT' : '<span class="in"><span class="name">IN') + '</span>' +
-					'<span class="value">' + value + '<span class="units">GAV</span></span>' +
+					'<span class="value">' + (value / 1000) + '<span class="units">GAV</span></span>' +
 					'' + (mine ? '' : send ? wesent ? wegot ? '' : '<span class="to"><span class="ind">&gt;</span>' + pretty(dest) + '</span>' : '<span class="from"><span class="ind">&lt;</span>' + pretty(l.from) + '</span>' : '') + '</span>' +
 					(age ? age > 10 ? '' :
 						'<span class="confirms">' + age + ' CONFIRMATIONS</span>' :
@@ -369,7 +367,7 @@ updateGavCoinTxs = function() {
 	refresh();
 }
 
-eth.watchChain().changed(refresh);
+eth.watch("chain").changed(refresh);
 
 </script>
 </body>
