@@ -1,0 +1,62 @@
+# storage[-1] = last campaign id
+# campaigns:
+#      id: creator
+#    id+1: goal
+#    id+2: end timestamp
+#    id+3: pointer to place next donation
+#    id+4: total contribution counter
+# id+2i+5: ith contributor
+# id+2i+6: ith contribution
+
+# Start a campaign, data [0, id, recipient, goal, time limit]
+if msg.data[0] == 0:
+    id = msg.data[1] * 2 ^ 128
+    if contract.storage[id]:
+        return(0)
+    contract.storage[id] = msg.data[2] # Campaign recipient
+    contract.storage[id + 1] = msg.data[3] # Goal
+    contract.storage[id + 2] = block.timestamp + msg.data[4] # Time limit
+    contract.storage[id + 3] = id + 5 # Index of next contribution
+    return(msg.data[1])
+
+# Contribute to a campaign [1, id]
+elif msg.data[0] == 1:
+    id = msg.data[1] * 2^128
+
+    # Update contribution total
+    total_contributed = contract.storage[id + 4] + msg.value
+    contract.storage[id + 4] = total_contributed
+
+    # Record new contribution
+    sub_index = contract.storage[id + 3]
+    contract.storage[sub_index] = msg.sender
+    contract.storage[sub_index + 1] = msg.value
+    contract.storage[id + 3] = sub_index + 2
+
+    # Enough funding?
+    if total_contributed >= contract.storage[id + 1]:
+        send(contract.storage[id], total_contributed)
+        v = id
+        f = sub_index + 2
+        while v < f:
+            contract.storage[v] = 0
+            v += 1
+        return(1)
+
+    # Expired?
+    if block.timestamp > contract.storage[id + 2]:
+        v = id
+        f = sub_index + 2
+        while v < id + 5:
+            contract.storage[v] = 0
+            v += 1
+        while v < f:
+            send(contract.storage[v], contract.storage[v + 1])
+            contract.storage[v] = 0
+            contract.storage[v + 1] = 0
+            v += 2
+        return(2)
+
+# Progress report [2, id]
+elif msg.data[0] == 2:
+    return(contract.storage[msg.data[1] * 2^128] + 4)
