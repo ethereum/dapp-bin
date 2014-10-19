@@ -1,0 +1,41 @@
+<link rel="stylesheet" type="text/css" href="http://multisig.info/bootstrap.min.css"/>
+<link rel="stylesheet" type="text/css" href="http://multisig.info/main.css"/>
+<script src="common.js"></script>
+<script src="campaign.js"></script>
+<div style="width: 250px; height: 200px; margin: 40px">
+<table class="tb" id="notdone">
+    <tr>
+        <td class="raise4"> Recipient: </td>
+        <td class="raise4" id="recipient">  </td>
+    </tr>
+    <tr>
+        <td class="raise4"> Goal: </td>
+        <td class="raise4" id="goal">  </td>
+    </tr>
+    <tr>
+        <td class="raise4"> Time left: </td>
+        <td class="raise4" id="timeleft">  </td>
+    </tr>
+    <tr>
+        <td class="raise4"> Contributed: </td>
+        <td class="raise4" id="contributed">  </td>
+    </tr>
+    <tr>
+        <td class="raise4"> Value: </td>
+        <td> <input type="text" id="value"/> </td>
+    </tr>
+    <tr>
+        <td class="raise4">  </td>
+        <td> <button class="btn" style="margin-bottom: 20px" onclick="contribute()"> Contribute </button> </td>
+    </tr>
+    <tr>
+        <td class="raise4">  </td>
+        <td class="raise4">
+            <a id="progress" href=""></a>
+        </td>
+    </tr>
+</table>
+<table class="tb">
+    <center id="done" style="display: none">Done!</center>
+</table>
+</div>

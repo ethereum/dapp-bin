@@ -1,12 +1,13 @@
-
-<!-- saved from url=(0031)http://gavwood.com/namereg.html -->
-<html id="abId0.6114371714647859"><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-	<script>
-		if (typeof(window.eth) === "undefined")
-			document.write('<script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></scrip' + 't>');
-	</script><script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></script>
-<title>NameReg</title>
-<style>
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>NameReg</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <script type="text/javascript">
+if (typeof(window.eth) === "undefined")
+	document.write('<script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></scrip' + 't>');
+    </script>
+    <style>
 body {
 	font-family: Gentium, Georgia, serif
 }
@@ -26,8 +27,8 @@ img {
 	margin: 4pt;
 	padding: 6pt;
 }
-</style>
-<script>
+    </style>
+    <script>
 var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
 var nameRegAddr = eth.stateAt(configAddr, "0", 0);
 var dnsRegAddr = eth.stateAt(configAddr, "4", 0);
@@ -62,19 +63,34 @@ lookupAddr = function()
 {
 	document.getElementById("name").value = dev.toAscii(eth.stateAt(nameRegAddr, "0x" + document.getElementById("addr").value));
 }
-</script>
-</head>
-<body id="abId0.7690352932550013">
-<h1>NameReg</h1>
-<h2>Lookup</h2>
-<div><label for="name">Name: </label><input id="name" type="text" value="" onkeyup="lookupName()"><label for="addr">Address: </label><input id="addr" type="text" value="" onkeyup="lookupAddr()"></div>
-<h2>Register Name</h2>
-<div><label for="name">Name: </label><input id="regname" type="text" value=""><button onclick="regName()">Register</button></div>
-<h2>Register Domain</h2>
-<div><label for="name">IP/Web domain: </label><input id="ip" type="text" value=""><label for="name">Ethereum Domain: </label><input id="domain" type="text" value="">.eth<button onclick="regDomain()">Register</button></div>
+    </script>
+  </head>
+  <body>
+    <h1>NameReg</h1>
+    <h2>Lookup</h2>
+    <div>
+      <label for="name">Name: </label>
+      <input id="name" type="text" value="" onkeyup="lookupName()">
+      <label for="addr">Address: </label>
+      <input id="addr" type="text" value="" onkeyup="lookupAddr()">
+    </div>
+    <h2>Register Name</h2>
+    <div>
+      <label for="name">Name: </label>
+      <input id="regname" type="text" value="">
+      <button onclick="regName()">Register</button>
+    </div>
 
-<span id="test">
-</span>
+    <h2>Register Domain</h2>
+    <div>
+      <label for="name">IP/Web domain: </label>
+      <input id="ip" type="text" value="">
+      <label for="name">Ethereum Domain: </label>
+      <input id="domain" type="text" value="">
+      <span>.eth</span>
+      <button onclick="regDomain()">Register</button>
+    </div>
 
-
-</body></html>
+    <span id="test"></span>
+  </body>
+</html>
