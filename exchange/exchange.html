@@ -215,8 +215,8 @@ var coins;
 
 var pretty = function(x) {
 	var ret = eth.stateAt(nameRegAddr, x, 0);
-	if (+eth.toDecimal(ret))
-		return "<b>" + eth.toAscii(ret) + "</b>";
+	if (+dev.toDecimal(ret))
+		return "<b>" + dev.toAscii(ret) + "</b>";
 
 	return x.substr(2);
 }
@@ -233,7 +233,7 @@ var refresh = function() {
 	{
 		if (coinsWatch)
 			coinsWatch.uninstall();
-		if (+eth.toDecimal(coinsAddr))
+		if (+dev.toDecimal(coinsAddr))
 		{
 			coinsWatch = eth.watch({ altered: coinsAddr });
 			coinsWatch.changed(updateCoins);
@@ -243,7 +243,7 @@ var refresh = function() {
 	{eth.stateAt(coinsAddr, 1)
 		if (exchangeWatch)
 			exchangeWatch.uninstall();
-		if (+eth.toDecimal(exchangeAddr))
+		if (+dev.toDecimal(exchangeAddr))
 		{
 			exchangeWatch = eth.watch({ altered: exchangeAddr });
 			exchangeWatch.changed(updateExchange);
@@ -256,9 +256,9 @@ var getCoins = function() {
 	var ret = { "ETH": { 'addr': '', 'denom': 1e18 } };
 	for (var i = 1; i <= n; ++i)
 	{
-		var name = eth.toAscii(eth.stateAt(coinsAddr, i));
+		var name = dev.toAscii(eth.stateAt(coinsAddr, i));
 		var addr = eth.stateAt(coinsAddr, eth.stateAt(coinsAddr, i));
-		var denom = +eth.toDecimal(eth.stateAt(coinsAddr, eth.sha3(eth.stateAt(coinsAddr, i)))) || 1;
+		var denom = +dev.toDecimal(eth.stateAt(coinsAddr, dev.sha3(eth.stateAt(coinsAddr, i)))) || 1;
 //		env.note(n + ":" + name + "/" + addr + "/" + denom);
 		ret[name] = { 'addr': addr, 'denom': denom };
 	}
@@ -270,20 +270,20 @@ var getOrderBook = function(have, want, addrs, dontCoalesce) {
 	var ret = [];
 	var haveAddr = coins[have].addr;
 	var wantAddr = coins[want].addr;
-	var list = eth.sha3(haveAddr, wantAddr);
+	var list = dev.sha3(haveAddr, wantAddr);
 	var haveFactor = coins[have].denom;
 	var wantFactor = coins[want].denom;
 	var last;
-	for (var s = eth.stateAt(exchangeAddr, list, 0); +eth.toDecimal(s); s = eth.stateAt(exchangeAddr, s, 0))
+	for (var s = eth.stateAt(exchangeAddr, list, 0); +dev.toDecimal(s); s = eth.stateAt(exchangeAddr, s, 0))
 	{
-		var id = eth.stateAt(exchangeAddr, eth.offset(s, 2), 0);
+		var id = eth.stateAt(exchangeAddr, dev.offset(s, 2), 0);
 		if (!addrs || addrs.indexOf(id) > -1)
 		{
-			var rateRaw = eth.stateAt(exchangeAddr, eth.offset(s, 1), 0);	// have/want
-			var rate = eth.fromFixed(rateRaw);	// have/want
+			var rateRaw = eth.stateAt(exchangeAddr, dev.offset(s, 1), 0);	// have/want
+			var rate = dev.fromFixed(rateRaw);	// have/want
 			var irate = 1.0 / rate;											// want/have
-			var wantRaw = eth.stateAt(exchangeAddr, eth.offset(s, 3), 0);
-			var haveRaw = eth.toDecimal(wantRaw) * rate;
+			var wantRaw = eth.stateAt(exchangeAddr, dev.offset(s, 3), 0);
+			var haveRaw = dev.toDecimal(wantRaw) * rate;
 			var wantApparent = Math.round(wantRaw / wantFactor * 1000000) / 1000000;
 			var haveApparent = Math.round(haveRaw / haveFactor * 1000000) / 1000000;
 			var rateApparent = Math.round(rate * wantFactor / haveFactor * 1000000) / 1000000;
@@ -467,10 +467,10 @@ updateCoins = function() {
 
 updateApproveButton = function() {
 	var addr = coins[document.getElementById('orderhavename').value].addr;
-	var en = !+eth.toDecimal(addr);
+	var en = !+dev.toDecimal(addr);
 	if (en)
 		for (var k in eth.keys)
-			en = en && +eth.toDecimal(eth.call({'from': k, 'to': addr, data: ['approved', exchangeAddr]}));
+			en = en && +dev.toDecimal(eth.call({'from': k, 'to': addr, data: ['approved', exchangeAddr]}));
 	document.getElementById("approve").classList = en ? [] : ['invalid'];
 	document.getElementById("execute").classList = en ? ['invalid'] : [];
 }

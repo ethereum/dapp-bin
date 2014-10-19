@@ -35,7 +35,7 @@ regName = function()
 {
 	var name = document.getElementById("regname").value;
 	if (name != "")
-			eth.transact({ 'to': nameRegAddr, 'data': [ eth.fromAscii('register'), eth.fromAscii(name) ] });
+			eth.transact({ 'to': nameRegAddr, 'data': [ dev.fromAscii('register'), dev.fromAscii(name) ] });
 	else{}
 }
 regDomain = function()
@@ -49,18 +49,18 @@ regDomain = function()
 	if (ip.length == 4)
 	{
 		var data = ((ip[0]-0) << 24) + ((ip[1]-0) << 16) + ((ip[2]-0) << 8) + (ip[3]-0);
-		eth.transact({ 'to': dnsRegAddr, data: [eth.fromAscii('register'), eth.fromAscii(name), data+'' ] });
+		eth.transact({ 'to': dnsRegAddr, data: [dev.fromAscii('register'), dev.fromAscii(name), data+'' ] });
 	}
 	else
-		eth.transact({ 'to': dnsRegAddr, data: [eth.fromAscii('register'), eth.fromAscii(name), eth.fromAscii(domain) ] });
+		eth.transact({ 'to': dnsRegAddr, data: [dev.fromAscii('register'), dev.fromAscii(name), dev.fromAscii(domain) ] });
 }
 lookupName = function()
 {
-	document.getElementById("addr").value = eth.stateAt(nameRegAddr, eth.fromAscii(document.getElementById("name").value)).substr(2);
+	document.getElementById("addr").value = eth.stateAt(nameRegAddr, dev.fromAscii(document.getElementById("name").value)).substr(2);
 }
 lookupAddr = function()
 {
-	document.getElementById("name").value = eth.toAscii(eth.stateAt(nameRegAddr, "0x" + document.getElementById("addr").value));
+	document.getElementById("name").value = dev.toAscii(eth.stateAt(nameRegAddr, "0x" + document.getElementById("addr").value));
 }
 </script>
 </head>
