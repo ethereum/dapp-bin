@@ -197,7 +197,7 @@ li.order.matching span.rate span.value {
 <script>
 
 var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
-var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+var myAddrs = eth.accounts;
 
 var nameRegAddr;
 var coinsAddr;
@@ -368,8 +368,8 @@ var execute = function() {
 var approve = function() {
 	var addr = coins[document.getElementById('orderhavename').value].addr;
 	if (en)
-		for (var k in eth.keys)
-			eth.transact({'from': k, 'to': addr, data: ['approve', exchangeAddr]});
+		for (var k in eth.accounts)
+			eth.transact({'from': eth.accounts[k], 'to': addr, data: ['approve', exchangeAddr]});
 	updateApproveButton();
 }
 
@@ -382,7 +382,7 @@ document.getElementById('approve').onclick = approve;
 var renderOurs = function(have, want) {
 	var haveAddr = coins[have].addr;
 	var wantAddr = coins[want].addr;
-	var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+	var myAddrs = eth.accounts;
 	var others = getOrderBook(have, want, myAddrs, true);
 	var oret = '';
 	for (var i in others)
@@ -469,8 +469,8 @@ updateApproveButton = function() {
 	var addr = coins[document.getElementById('orderhavename').value].addr;
 	var en = !+dev.toDecimal(addr);
 	if (en)
-		for (var k in eth.keys)
-			en = en && +dev.toDecimal(eth.call({'from': k, 'to': addr, data: ['approved', exchangeAddr]}));
+		for (var k in eth.accounts)
+			en = en && +dev.toDecimal(eth.call({'from': eth.accounts[k], 'to': addr, data: ['approved', exchangeAddr]}));
 	document.getElementById("approve").classList = en ? [] : ['invalid'];
 	document.getElementById("execute").classList = en ? ['invalid'] : [];
 }
@@ -491,10 +491,10 @@ updateExchange = function() {
 }
 
 deleteOrder = function(have, want, rate, who) {
-	for (var i in eth.keys)
+	for (var i in eth.accounts)
 	{
-		var k = eth.keys[i];
-		if (eth.secretToAddress(k) == who)
+		var k = eth.accounts[i];
+		if (k == who)
 			eth.transact({'from': k, 'to': exchangeAddr, 'data': ['delete', have+'', want+'', rate]});
 	}
 }

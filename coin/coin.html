@@ -202,7 +202,7 @@ span#unc span {
 <script>
 
 var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
-var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+var myAddrs = eth.accounts;
 
 var nameRegAddr;
 var gavCoinAddr;
@@ -270,10 +270,10 @@ var dosend = function() {
 	if (amount && to)
 	{
 		var l = +amount;
-		eth.keys.forEach(function(x) {
+		eth.accounts.forEach(function(x) {
 			if (l)
 			{
-				var t = +dev.toDecimal(eth.stateAt(gavCoinAddr, eth.secretToAddress(x), 0));
+				var t = +dev.toDecimal(eth.stateAt(gavCoinAddr, x, 0));
 				if (t > l)
 					t = l;
 				if (t)
