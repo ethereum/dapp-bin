@@ -17,6 +17,7 @@ div#log {
 	border: #888 1 solid;
 	border-bottom: #ccc 1 dotted;
 	margin-bottom: 0;
+	overflow-y: auto;
 }
 div#in {
 	border: #888 1 solid;
@@ -104,6 +105,7 @@ function roomChanged()
 function post()
 {
 	shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), web3.fromAscii(room)], payload: web3.fromAscii(document.getElementById('entry').value, 0) });
+	document.getElementById('entry').value = "";
 }
 
 var onNameChange = shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
