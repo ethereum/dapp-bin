@@ -1,0 +1,124 @@
+<html>
+<head>
+<title>Chat</title>
+<style>
+body {
+	font-family: Ubuntu, Tahoma, sans;
+	margin: 0;
+}
+h1 {
+	text-align: center;
+	font-size: 26pt;
+	color: rgba(0,0,0, 0.75);
+}
+div#log {
+	font-size: small;
+	height: 60ex;
+	border: #888 1 solid;
+	border-bottom: #ccc 1 dotted;
+	margin-bottom: 0;
+}
+div#in {
+	border: #888 1 solid;
+	border-top: none;
+	height: 1.5em;
+}
+input {
+	margin-top: 0;
+	border: none;
+	background: #f8f8f8
+}
+input#entry {
+	width: 80%
+}
+input#name {
+	width: 10%
+}
+button#post {
+	display: block;
+	float: right;
+	border: 1px #ccc solid;
+	background: #fff;
+	border-radius: 2pt;
+	height: 1.5em;
+	margin: none;
+}	
+span.timestamp {
+	color: #888888;
+}
+span.who {
+	color: #5555ff;
+	font-weight: bold;
+}
+span.message {
+}
+</style>
+</head>
+<body>
+<h1>Chat</h1>
+
+<input id="room" value="general"><button id="setRoom" onClick="roomChanged()">Set room</button>
+<div id="log"></div>
+<div id="in">
+	<input id="name"/>:<input id="entry"/><button id="post" onClick="post()">send</button>
+</div>
+<script>
+var shh = web3.shh;
+/*var db = web3.ldb.open("chat");
+var myIdentity = db.get("identity");
+if (!myIdentity)
+{
+	myIdentity = shh.newIdentity();
+	db.put("identity", myIdentity);
+}*/
+var myIdentity = shh.newIdentity();
+
+var room = "";
+var onMessage;
+var names = {};
+
+function newMessage(m)
+{
+	document.getElementById('log').innerHTML = document.getElementById('log').innerHTML + '<div><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> <span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + ': </span><span class="message">' + web3.toAscii(m.payload) + '</span></div>';
+}
+
+function newName(m)
+{
+	names[m.from] = web3.toAscii(m.payload, 0);
+}
+
+function nameChanged()
+{
+	shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(document.getElementById('name').value, 0), ttl: 60 });
+}
+
+function roomChanged()
+{
+	if (onMessage)
+		onMessage.uninstall();
+	room = document.getElementById('room').value;
+	onMessage = shh.watch({ 'topic': [web3.fromAscii('chat'), web3.fromAscii(room)] });
+	onMessage.arrived(newMessage);
+}
+
+function post()
+{
+	shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), web3.fromAscii(room)], payload: web3.fromAscii(document.getElementById('entry').value, 0) });
+}
+
+var onNameChange = shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
+
+document.getElementById('name').value = myIdentity.substr(2, 8);
+nameChanged();
+roomChanged();
+
+document.getElementById('name').onkeydown = function(event)
+{
+	if (event.keyCode == 13)
+		nameChanged();
+}
+document.getElementById('room').onkeydown = function(event) { if (event.keyCode == 13) roomChanged(); }
+document.getElementById('entry').onkeydown = function(event) { if (event.keyCode == 13) post(); }
+</script>
+</body>
+</html>
