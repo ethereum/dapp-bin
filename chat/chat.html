@@ -77,10 +77,12 @@ var myIdentity = shh.newIdentity();
 var room = "";
 var onMessage;
 var names = {};
+var name = "";
 
 function newMessage(m)
 {
 	document.getElementById('log').innerHTML = document.getElementById('log').innerHTML + '<div><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> <span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + ': </span><span class="message">' + web3.toAscii(m.payload) + '</span></div>';
+	document.getElementById('log').scrollTop = '1500000';
 }
 
 function newName(m)
@@ -90,7 +92,11 @@ function newName(m)
 
 function nameChanged()
 {
-	shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(document.getElementById('name').value, 0), ttl: 60 });
+	if (name != document.getElementById('name').value)
+	{
+		name = document.getElementById('name').value;
+		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(name, 0), ttl: 60 });
+	}
 }
 
 function roomChanged()
@@ -104,6 +110,7 @@ function roomChanged()
 
 function post()
 {
+	nameChanged();
 	shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), web3.fromAscii(room)], payload: web3.fromAscii(document.getElementById('entry').value, 0) });
 	document.getElementById('entry').value = "";
 }
@@ -111,7 +118,6 @@ function post()
 var onNameChange = shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
 
 document.getElementById('name').value = myIdentity.substr(2, 8);
-nameChanged();
 roomChanged();
 
 document.getElementById('name').onkeydown = function(event)
