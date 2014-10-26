@@ -12,7 +12,7 @@ h1 {
 	color: rgba(0,0,0, 0.75);
 }
 div#log {
-	font-size: small;
+/*	font-size: small;*/
 	height: 60ex;
 	border: #888 1 solid;
 	border-bottom: #ccc 1 dotted;
@@ -48,8 +48,20 @@ span.timestamp {
 	color: #888888;
 }
 span.who {
-	color: #5555ff;
 	font-weight: bold;
+}
+div.private {
+	background: #fee;
+	border-right: 6pt #f88 solid;
+}
+div.private span.who {
+	color: #55cc55;
+}
+div.room span.who {
+	color: #5555ff;
+}
+div.private span.me {
+	color: #ff5555;
 }
 span.message {
 }
@@ -75,26 +87,38 @@ if (!myIdentity)
 var myIdentity = shh.newIdentity();
 
 var room = "";
-var onMessage;
 var names = {};
+var invNames = {};
 var name = "";
+var onMessage;
+var onPrivateMessage;
+var lastNameSend;
 
 function newMessage(m)
 {
-	document.getElementById('log').innerHTML = document.getElementById('log').innerHTML + '<div><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> <span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + ': </span><span class="message">' + web3.toAscii(m.payload) + '</span></div>';
+	document.getElementById('log').innerHTML = document.getElementById('log').innerHTML +
+		'<div class="' + (+web3.toDecimal(m.to) ? "private" : "room") + '"><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> ' +
+		'<span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + '</span>' +
+		(+web3.toDecimal(m.to) ?
+			' -> <span class="me">' + name + '</span>: ' :
+			': ') +
+		'<span class="message">' + web3.toAscii(m.payload) + '</span></div>';
 	document.getElementById('log').scrollTop = '1500000';
 }
 
 function newName(m)
 {
+	if (names[m.from])
+		delete invNames[names[m.from]];
 	names[m.from] = web3.toAscii(m.payload, 0);
+	invNames[names[m.from]] = m.from;
 }
 
 function nameChanged()
 {
-	if (name != document.getElementById('name').value)
+	if (name != document.getElementById('name').value.replace(' ', '_') || !lastNameSend || new Date - lastNameSend > 60000)
 	{
-		name = document.getElementById('name').value;
+		name = document.getElementById('name').value.replace(' ', '_');
 		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(name, 0), ttl: 60 });
 	}
 }
@@ -106,13 +130,41 @@ function roomChanged()
 	room = document.getElementById('room').value;
 	onMessage = shh.watch({ 'topic': [web3.fromAscii('chat'), web3.fromAscii(room)] });
 	onMessage.arrived(newMessage);
+	onPrivateMessage = shh.watch({ 'topic': [web3.fromAscii('chat'), myIdentity], 'to': myIdentity });
+	onPrivateMessage.arrived(newMessage);
 }
 
 function post()
 {
 	nameChanged();
-	shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), web3.fromAscii(room)], payload: web3.fromAscii(document.getElementById('entry').value, 0) });
+	var txt = document.getElementById('entry').value;
+	var pm = /^\$([^ ]+):? ?(.*)$/.exec(txt);
+	var msg = { from: myIdentity };
+	if (pm && invNames[pm[1]])
+	{
+		msg.to = invNames[pm[1]];
+		txt = pm[2];
+		msg.topic = [web3.fromAscii('chat'), msg.to];
+	}
+	else
+		msg.topic = [web3.fromAscii('chat'), web3.fromAscii(room)];
+	msg.payload = web3.fromAscii(txt, 0);
+	shh.post(msg);
 	document.getElementById('entry').value = "";
+}
+
+function tab(at)
+{
+	var txt = document.getElementById('entry').value;
+	var m = /^([@\$])([^ ]+)$/.exec(txt.substr(0, at));
+	if (m)
+		for (var n in names)
+			if (names[n].substr(0, m[2].length) == m[2])
+			{
+				document.getElementById('entry').value = txt.substr(0, at - m[2].length) + names[n] + " " + txt.substr(at);
+				return true;
+			}
+	return false;
 }
 
 var onNameChange = shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
@@ -126,7 +178,15 @@ document.getElementById('name').onkeydown = function(event)
 		nameChanged();
 }
 document.getElementById('room').onkeydown = function(event) { if (event.keyCode == 13) roomChanged(); }
-document.getElementById('entry').onkeydown = function(event) { if (event.keyCode == 13) post(); }
+document.getElementById('entry').onkeydown = function(event)
+{
+	if (event.keyCode == 13)
+		post();
+	else if (event.keyCode == 9)
+		if (tab(document.getElementById('entry').selectionEnd))
+			return false;
+	return true;
+}
 </script>
 </body>
 </html>
