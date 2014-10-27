@@ -11,16 +11,19 @@ h1 {
 	font-size: 26pt;
 	color: rgba(0,0,0, 0.75);
 }
+div#chat {
+	margin: 1em;
+	box-shadow: #ccc 0 0 1em;
+	border: #ddd 1 solid;
+}
 div#log {
 /*	font-size: small;*/
 	height: 60ex;
-	border: #888 1 solid;
-	border-bottom: #ccc 1 dotted;
 	margin-bottom: 0;
 	overflow-y: auto;
 }
 div#in {
-	border: #888 1 solid;
+	border: #ddd 1 solid;
 	border-top: none;
 	height: 1.5em;
 }
@@ -29,18 +32,33 @@ input {
 	border: none;
 	background: #f8f8f8
 }
-input#entry {
-	width: 80%
+div#entrydiv {
+	margin-left: 8.2em;
+	margin-right: 4.2em;
+}
+div#roomdiv {
+	margin-right: 6.2em;
+}
+input#entry, input#room {
+	width: 100%
 }
 input#name {
-	width: 10%
+	width: 8em;
+	float: left;
+}
+button#setRoom {
+	display: block;
+	float: right;
+	width: 6em;
 }
 button#post {
 	display: block;
 	float: right;
+	width: 4em;
+}
+button {
 	border: 1px #ccc solid;
 	background: #fff;
-	border-radius: 2pt;
 	height: 1.5em;
 	margin: none;
 }	
@@ -55,13 +73,17 @@ div.private {
 	border-right: 6pt #f88 solid;
 }
 div.private span.who {
-	color: #55cc55;
-}
-div.room span.who {
-	color: #5555ff;
+	color: #f55;
 }
 div.private span.me {
-	color: #ff5555;
+	color: #f55;
+	font-weight: normal;
+}
+div.room span.who {
+	color: #55f;
+}
+div.room span.me {
+	color: #5c5;
 }
 span.message {
 }
@@ -69,27 +91,37 @@ span.message {
 </head>
 <body>
 <h1>Chat</h1>
-
-<input id="room" value="general"><button id="setRoom" onClick="roomChanged()">Set room</button>
+<div id="chat">
+<div>
+	<button id="setRoom" onClick="roomChanged()">set room</button>
+	<div id="roomdiv"><input id="room" value="general"/></div>
+</div>
+<div style="clear: both"></div>
 <div id="log"></div>
 <div id="in">
-	<input id="name"/>:<input id="entry"/><button id="post" onClick="post()">send</button>
+	<input id="name"/>
+	<button id="post" onClick="post()">send</button>
+	<div id="entrydiv"><input id="entry"/></div>
+</div>
 </div>
 <script>
+function def(a, b) { return a ? a : b; }
+
 var shh = web3.shh;
-/*var db = web3.ldb.open("chat");
-var myIdentity = db.get("identity");
-if (!myIdentity)
+var db = web3.db;
+var myIdentity = db.get("chat", "identity");
+if (!+web3.toDecimal(myIdentity))
 {
 	myIdentity = shh.newIdentity();
-	db.put("identity", myIdentity);
-}*/
-var myIdentity = shh.newIdentity();
+	db.put("chat", "identity", myIdentity);
+}
 
-var room = "";
+var name;
+var room;
+
 var names = {};
 var invNames = {};
-var name = "";
+
 var onMessage;
 var onPrivateMessage;
 var lastNameSend;
@@ -119,6 +151,7 @@ function nameChanged()
 	if (name != document.getElementById('name').value.replace(' ', '_') || !lastNameSend || new Date - lastNameSend > 60000)
 	{
 		name = document.getElementById('name').value.replace(' ', '_');
+		db.putString("chat", "name", name);
 		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(name, 0), ttl: 60 });
 	}
 }
@@ -128,10 +161,9 @@ function roomChanged()
 	if (onMessage)
 		onMessage.uninstall();
 	room = document.getElementById('room').value;
+	db.putString("chat", "room", room);
 	onMessage = shh.watch({ 'topic': [web3.fromAscii('chat'), web3.fromAscii(room)] });
 	onMessage.arrived(newMessage);
-	onPrivateMessage = shh.watch({ 'topic': [web3.fromAscii('chat'), myIdentity], 'to': myIdentity });
-	onPrivateMessage.arrived(newMessage);
 }
 
 function post()
@@ -167,26 +199,36 @@ function tab(at)
 	return false;
 }
 
-var onNameChange = shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
-
-document.getElementById('name').value = myIdentity.substr(2, 8);
-roomChanged();
-
 document.getElementById('name').onkeydown = function(event)
 {
 	if (event.keyCode == 13)
 		nameChanged();
 }
-document.getElementById('room').onkeydown = function(event) { if (event.keyCode == 13) roomChanged(); }
+
+document.getElementById('room').onkeydown = function(event)
+{
+	if (event.keyCode == 13)
+		roomChanged();
+}
+
 document.getElementById('entry').onkeydown = function(event)
 {
 	if (event.keyCode == 13)
 		post();
-	else if (event.keyCode == 9)
+	else if (event.keyCode == 9 || event.keyCode == 16)
 		if (tab(document.getElementById('entry').selectionEnd))
 			return false;
 	return true;
 }
+
+shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
+shh.watch({ 'topic': [web3.fromAscii('chat'), myIdentity], 'to': myIdentity }).arrived(newMessage);
+
+document.getElementById('name').value = def(db.getString("chat", "name"), myIdentity.substr(2, 8));
+document.getElementById('room').value = def(db.getString("chat", "room"), "general");
+roomChanged();
+nameChanged();
+
 </script>
 </body>
 </html>
