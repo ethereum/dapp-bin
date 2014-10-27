@@ -4,76 +4,69 @@
     <title>NameReg</title>
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
     <script type="text/javascript">
-      if (typeof(window.eth) === "undefined") {
-        document.write('<script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></scrip' + 't>');
-      }
+if (typeof(window.eth) === "undefined")
+	document.write('<script src="file:///home/gav/Projects/cpp-ethereum/eth/eth.js"></scrip' + 't>');
     </script>
-    <style type="text/css">
-      body {
-        font-family: Gentium, Georgia, serif
-      }
-      h1, h2 {
-        font-family: Trebuchet MS, sans
-      }
-      h1 { 
-        font-size: 16pt
-      }
-      h2 { 
-        font-size: 13pt
-      }
-      div {
-        margin-left: 8pt;
-      }
-      img {
-        margin: 4pt;
-        padding: 6pt;
-      }
+    <style>
+body {
+	font-family: Gentium, Georgia, serif
+}
+h1, h2 {
+	font-family: Trebuchet MS, sans
+}
+h1 { 
+	font-size: 16pt
+}
+h2 { 
+	font-size: 13pt
+}
+div {
+	margin-left: 8pt;
+}
+img {
+	margin: 4pt;
+	padding: 6pt;
+}
     </style>
-    <script type="text/javascript">
-      var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
-      var nameRegAddr = eth.stateAt(configAddr, "0", 0);
-      var dnsRegAddr = eth.stateAt(configAddr, "4", 0);
-      var regName = function() {
-        var name = document.getElementById("regname").value;
-        if (name != "") {
-        	eth.transact({
-        		to: nameRegAddr,
-        		data: [ eth.fromAscii('register'), eth.fromAscii(name) ]
-        	});
-        }
-      }
-      var regDomain = function() {
-        var oname = document.getElementById("domain").value;
-        var name = oname;
-        if (name.substr(-4) == ".eth") {
-        	name = name.substr(0, name.length - 4);
-        }
-        var domain = document.getElementById("ip").value;
-        var ip = domain.split('.');
-        if (ip.length == 4) {
-          var data = ((ip[0]-0) << 24) + ((ip[1]-0) << 16) + ((ip[2]-0) << 8) + (ip[3]-0);
-          eth.transact({
-          	to: dnsRegAddr,
-          	data: [eth.fromAscii('register'), eth.fromAscii(name), data + '' ]
-          });
-        } else {
-        	eth.transact({
-        		to: dnsRegAddr,
-        		data: [eth.fromAscii('register'), eth.fromAscii(name), eth.fromAscii(domain) ]
-        	});
-        }
-      }
-      var lookupName = function() {
-        document.getElementById("addr").value = eth.stateAt(nameRegAddr, eth.fromAscii(document.getElementById("name").value)).substr(2);
-      }
-      var lookupAddr = function() {
-        document.getElementById("name").value = eth.toAscii(eth.stateAt(nameRegAddr, "0x" + document.getElementById("addr").value));
-      }
+    <script>
+var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var nameRegAddr = eth.stateAt(configAddr, "0", 0);
+var dnsRegAddr = eth.stateAt(configAddr, "4", 0);
+regName = function()
+{
+	var name = document.getElementById("regname").value;
+	if (name != "")
+			eth.transact({ 'to': nameRegAddr, 'data': [ dev.fromAscii('register'), dev.fromAscii(name) ] });
+	else{}
+}
+regDomain = function()
+{
+	var oname = document.getElementById("domain").value;
+	var name = oname;
+	if (name.substr(-4) == ".eth")
+		name = name.substr(0, name.length - 4);
+	var domain = document.getElementById("ip").value;
+	var ip = domain.split('.');
+	if (ip.length == 4)
+	{
+		var data = ((ip[0]-0) << 24) + ((ip[1]-0) << 16) + ((ip[2]-0) << 8) + (ip[3]-0);
+		eth.transact({ 'to': dnsRegAddr, data: [dev.fromAscii('register'), dev.fromAscii(name), data+'' ] });
+	}
+	else
+		eth.transact({ 'to': dnsRegAddr, data: [dev.fromAscii('register'), dev.fromAscii(name), dev.fromAscii(domain) ] });
+}
+lookupName = function()
+{
+	document.getElementById("addr").value = eth.stateAt(nameRegAddr, dev.fromAscii(document.getElementById("name").value)).substr(2);
+}
+lookupAddr = function()
+{
+	document.getElementById("name").value = dev.toAscii(eth.stateAt(nameRegAddr, "0x" + document.getElementById("addr").value));
+}
     </script>
   </head>
   <body>
     <h1>NameReg</h1>
-
     <h2>Lookup</h2>
     <div>
       <label for="name">Name: </label>
@@ -81,7 +74,6 @@
       <label for="addr">Address: </label>
       <input id="addr" type="text" value="" onkeyup="lookupAddr()">
     </div>
-
     <h2>Register Name</h2>
     <div>
       <label for="name">Name: </label>

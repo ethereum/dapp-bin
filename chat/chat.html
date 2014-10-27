@@ -1,0 +1,234 @@
+<html>
+<head>
+<title>Chat</title>
+<style>
+body {
+	font-family: Ubuntu, Tahoma, sans;
+	margin: 0;
+}
+h1 {
+	text-align: center;
+	font-size: 26pt;
+	color: rgba(0,0,0, 0.75);
+}
+div#chat {
+	margin: 1em;
+	box-shadow: #ccc 0 0 1em;
+	border: #ddd 1 solid;
+}
+div#log {
+/*	font-size: small;*/
+	height: 60ex;
+	margin-bottom: 0;
+	overflow-y: auto;
+}
+div#in {
+	border: #ddd 1 solid;
+	border-top: none;
+	height: 1.5em;
+}
+input {
+	margin-top: 0;
+	border: none;
+	background: #f8f8f8
+}
+div#entrydiv {
+	margin-left: 8.2em;
+	margin-right: 4.2em;
+}
+div#roomdiv {
+	margin-right: 6.2em;
+}
+input#entry, input#room {
+	width: 100%
+}
+input#name {
+	width: 8em;
+	float: left;
+}
+button#setRoom {
+	display: block;
+	float: right;
+	width: 6em;
+}
+button#post {
+	display: block;
+	float: right;
+	width: 4em;
+}
+button {
+	border: 1px #ccc solid;
+	background: #fff;
+	height: 1.5em;
+	margin: none;
+}	
+span.timestamp {
+	color: #888888;
+}
+span.who {
+	font-weight: bold;
+}
+div.private {
+	background: #fee;
+	border-right: 6pt #f88 solid;
+}
+div.private span.who {
+	color: #f55;
+}
+div.private span.me {
+	color: #f55;
+	font-weight: normal;
+}
+div.room span.who {
+	color: #55f;
+}
+div.room span.me {
+	color: #5c5;
+}
+span.message {
+}
+</style>
+</head>
+<body>
+<h1>Chat</h1>
+<div id="chat">
+<div>
+	<button id="setRoom" onClick="roomChanged()">set room</button>
+	<div id="roomdiv"><input id="room" value="general"/></div>
+</div>
+<div style="clear: both"></div>
+<div id="log"></div>
+<div id="in">
+	<input id="name"/>
+	<button id="post" onClick="post()">send</button>
+	<div id="entrydiv"><input id="entry"/></div>
+</div>
+</div>
+<script>
+function def(a, b) { return a ? a : b; }
+
+var shh = web3.shh;
+var db = web3.db;
+var myIdentity = db.get("chat", "identity");
+if (!+web3.toDecimal(myIdentity))
+{
+	myIdentity = shh.newIdentity();
+	db.put("chat", "identity", myIdentity);
+}
+
+var name;
+var room;
+
+var names = {};
+var invNames = {};
+
+var onMessage;
+var onPrivateMessage;
+var lastNameSend;
+
+function newMessage(m)
+{
+	document.getElementById('log').innerHTML = document.getElementById('log').innerHTML +
+		'<div class="' + (+web3.toDecimal(m.to) ? "private" : "room") + '"><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> ' +
+		'<span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + '</span>' +
+		(+web3.toDecimal(m.to) ?
+			' -> <span class="me">' + name + '</span>: ' :
+			': ') +
+		'<span class="message">' + web3.toAscii(m.payload) + '</span></div>';
+	document.getElementById('log').scrollTop = '1500000';
+}
+
+function newName(m)
+{
+	if (names[m.from])
+		delete invNames[names[m.from]];
+	names[m.from] = web3.toAscii(m.payload, 0);
+	invNames[names[m.from]] = m.from;
+}
+
+function nameChanged()
+{
+	if (name != document.getElementById('name').value.replace(' ', '_') || !lastNameSend || new Date - lastNameSend > 60000)
+	{
+		name = document.getElementById('name').value.replace(' ', '_');
+		db.putString("chat", "name", name);
+		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(name, 0), ttl: 60 });
+	}
+}
+
+function roomChanged()
+{
+	if (onMessage)
+		onMessage.uninstall();
+	room = document.getElementById('room').value;
+	db.putString("chat", "room", room);
+	onMessage = shh.watch({ 'topic': [web3.fromAscii('chat'), web3.fromAscii(room)] });
+	onMessage.arrived(newMessage);
+}
+
+function post()
+{
+	nameChanged();
+	var txt = document.getElementById('entry').value;
+	var pm = /^\$([^ ]+):? ?(.*)$/.exec(txt);
+	var msg = { from: myIdentity };
+	if (pm && invNames[pm[1]])
+	{
+		msg.to = invNames[pm[1]];
+		txt = pm[2];
+		msg.topic = [web3.fromAscii('chat'), msg.to];
+	}
+	else
+		msg.topic = [web3.fromAscii('chat'), web3.fromAscii(room)];
+	msg.payload = web3.fromAscii(txt, 0);
+	shh.post(msg);
+	document.getElementById('entry').value = "";
+}
+
+function tab(at)
+{
+	var txt = document.getElementById('entry').value;
+	var m = /^([@\$])([^ ]+)$/.exec(txt.substr(0, at));
+	if (m)
+		for (var n in names)
+			if (names[n].substr(0, m[2].length) == m[2])
+			{
+				document.getElementById('entry').value = txt.substr(0, at - m[2].length) + names[n] + " " + txt.substr(at);
+				return true;
+			}
+	return false;
+}
+
+document.getElementById('name').onkeydown = function(event)
+{
+	if (event.keyCode == 13)
+		nameChanged();
+}
+
+document.getElementById('room').onkeydown = function(event)
+{
+	if (event.keyCode == 13)
+		roomChanged();
+}
+
+document.getElementById('entry').onkeydown = function(event)
+{
+	if (event.keyCode == 13)
+		post();
+	else if (event.keyCode == 9 || event.keyCode == 16)
+		if (tab(document.getElementById('entry').selectionEnd))
+			return false;
+	return true;
+}
+
+shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
+shh.watch({ 'topic': [web3.fromAscii('chat'), myIdentity], 'to': myIdentity }).arrived(newMessage);
+
+document.getElementById('name').value = def(db.getString("chat", "name"), myIdentity.substr(2, 8));
+document.getElementById('room').value = def(db.getString("chat", "room"), "general");
+roomChanged();
+nameChanged();
+
+</script>
+</body>
+</html>

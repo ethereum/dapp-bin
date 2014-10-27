@@ -200,9 +200,10 @@ span#unc span {
 </div>
 </div>
 <script>
+var eth = web3.eth;
 
 var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
-var myAddrs = eth.keys.map(function (k) { return eth.secretToAddress(k); });
+var myAddrs = eth.accounts;
 
 var nameRegAddr;
 var gavCoinAddr;
@@ -214,15 +215,15 @@ var checkto = function() {
 	if (to.length == 40)
 	{
 		dest = "0x" + to;
-		if (+eth.toDecimal(eth.balanceAt(dest, 0)))
+		if (+web3.toDecimal(eth.balanceAt(dest, 0)))
 			s = "valid";
 		else
 			s = "maybevalid";
 	}
 	else
 	{
-		var dest = eth.stateAt(nameRegAddr, eth.fromAscii(to), 0);
-		if (+eth.toDecimal(dest))
+		var dest = eth.stateAt(nameRegAddr, web3.fromAscii(to), 0);
+		if (+web3.toDecimal(dest))
 			s = "valid";
 		else
 		{
@@ -238,7 +239,7 @@ var checkto = function() {
 var totalGav = function() {
 	var confirmedGav = 0;
 	var unconfirmedGav = 0;
-	myAddrs.forEach(function(x) { confirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
+	myAddrs.forEach(function(x) { confirmedGav -=- web3.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- web3.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
 	return [confirmedGav, unconfirmedGav];
 }
 
@@ -270,10 +271,10 @@ var dosend = function() {
 	if (amount && to)
 	{
 		var l = +amount;
-		eth.keys.forEach(function(x) {
+		eth.accounts.forEach(function(x) {
 			if (l)
 			{
-				var t = +eth.toDecimal(eth.stateAt(gavCoinAddr, eth.secretToAddress(x), 0));
+				var t = +web3.toDecimal(eth.stateAt(gavCoinAddr, x, 0));
 				if (t > l)
 					t = l;
 				if (t)
@@ -290,8 +291,8 @@ var domine = function() {
 }
 var pretty = function(x) {
 	var ret = eth.stateAt(nameRegAddr, x, 0);
-	if (eth.toDecimal(ret) - 0)
-		return "<b>" + eth.toAscii(ret) + "</b>";
+	if (web3.toDecimal(ret) - 0)
+		return "<b>" + web3.toAscii(ret) + "</b>";
 
 	return x.substr(2);
 }
@@ -309,7 +310,7 @@ var refresh = function() {
 	{
 		if (gcTxWatch)
 			gcTxWatch.uninstall();
-		if (eth.toDecimal(gavCoinAddr))
+		if (web3.toDecimal(gavCoinAddr))
 		{
 			gcTxWatch = eth.watch({'max': 15, 'altered': myAddrs.map(function (a) { return { 'id': gavCoinAddr, 'at': a } }) });
 			gcTxWatch.changed(updateGavCoinTxs);
@@ -319,13 +320,13 @@ var refresh = function() {
 	
 	var cv = checkvalue();
 	var ct = checkto();
-	var blocksToMine = eth.toDecimal(eth.number) - eth.toDecimal(eth.stateAt(gavCoinAddr, "0x42", 0));
+	var blocksToMine = web3.toDecimal(eth.number) - web3.toDecimal(eth.stateAt(gavCoinAddr, "0x42", 0));
 	document.getElementById('mine').className = (blocksToMine ? "valid" : "invalid");
 	document.getElementById('mine').innerHTML = blocksToMine == 1 ? "mine" : "mine " + blocksToMine;
 	document.getElementById('addr').innerHTML = myAddrs[0].substr(2);
 	var confirmedGav = 0;
 	var unconfirmedGav = 0;
-	myAddrs.forEach(function(x) { confirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- eth.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
+	myAddrs.forEach(function(x) { confirmedGav -=- web3.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- web3.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
 	document.getElementById('gav').innerHTML = (unconfirmedGav > confirmedGav ? confirmedGav / 1000 + '<span id="unc"> (+ <span>' + (unconfirmedGav - confirmedGav) / 1000 + "</span> unconfirmed)</span>" : unconfirmedGav / 1000);
 	var lh = document.getElementById("latest");
 	lh.innerHTML = "";
@@ -333,10 +334,10 @@ var refresh = function() {
 	for (var i = 0; i < latest.length; ++i)
 	{
 		var l = latest[/*s -*/ i];
-		if (+eth.toDecimal(l.to))
+		if (+web3.toDecimal(l.to))
 		{
-			var mine = !+eth.toDecimal(l.input) || eth.toAscii(l.input).substr(0, 4) == "mine";
-			var send = eth.toAscii(l.input).substr(0, 4) == "send";
+			var mine = !+web3.toDecimal(l.input) || web3.toAscii(l.input).substr(0, 4) == "mine";
+			var send = web3.toAscii(l.input).substr(0, 4) == "send";
 			if (mine || send)
 			{
 				var dest;
@@ -344,7 +345,7 @@ var refresh = function() {
 					dest = "0x" + l.input.substr(90, 40);
 				var wesent = myAddrs.indexOf(l.from) != -1 || (l.input.length > 96 * 2 + 2 && myAddrs.indexOf(l.origin) != -1);
 				var wegot = myAddrs.indexOf(dest) != -1;
-				var value = mine ? eth.toDecimal(l.output) * 1000 * ((myAddrs.indexOf(l.coinbase) != -1 ? 1 : 0) + (myAddrs.indexOf(l.from) != -1 ? 1 : 0)) : eth.toDecimal("0x" + l.input.substr(130, 64));
+				var value = mine ? web3.toDecimal(l.output) * 1000 * ((myAddrs.indexOf(l.coinbase) != -1 ? 1 : 0) + (myAddrs.indexOf(l.from) != -1 ? 1 : 0)) : web3.toDecimal("0x" + l.input.substr(130, 64));
 				var age = eth.number - l.number;
 //				env.note(eth.number + " " + l.number + " " + age);
 				lh.innerHTML = lh.innerHTML + '<li>' +
