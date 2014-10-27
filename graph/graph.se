@@ -1,0 +1,14 @@
+REGISTER = 0
+CHECK = 1
+
+# register connection [0, to]
+if msg.data[0] == REGISTER:
+    contract.storage[sha3([msg.sender, msg.data[1]], 2)] = 1
+    
+# check for a connection [1, from, to]
+elif msg.data[0] == CHECK:
+    o = contract.storage[sha3([msg.data[1], msg.data[2]], 2)]
+    contract.storage[4] += 1
+    contract.storage[5] = o
+    return(o)
+
