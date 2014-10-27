@@ -1,6 +1,6 @@
 # storage[-1] = last campaign id
 # campaigns:
-#      id: creator
+#      id: recipient
 #    id+1: goal
 #    id+2: end timestamp
 #    id+3: pointer to place next donation

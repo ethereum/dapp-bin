@@ -35,3 +35,9 @@ var update = function(id) {
         }
     })
 }
+
+setTimeout(function() {
+    eth.stateAt(crowdFundAddr, eth.fromAscii('0'.pad(32))).done(function(result) {
+        el("campaign_addr").innerText = 'fofof: '+('0x'+result).dec()
+    })
+})
