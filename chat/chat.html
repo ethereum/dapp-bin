@@ -110,7 +110,7 @@ function def(a, b) { return a ? a : b; }
 var shh = web3.shh;
 var db = web3.db;
 var myIdentity = db.get("chat", "identity");
-if (!+web3.toDecimal(myIdentity))
+if (!+web3.toDecimal(myIdentity) || !shh.haveIdentity(myIdentity))
 {
 	myIdentity = shh.newIdentity();
 	db.put("chat", "identity", myIdentity);
@@ -153,6 +153,7 @@ function nameChanged()
 		name = document.getElementById('name').value.replace(' ', '_');
 		db.putString("chat", "name", name);
 		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(name, 0), ttl: 60 });
+		lastNameSend = new Date;
 	}
 }
 
