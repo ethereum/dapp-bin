@@ -1,5 +1,7 @@
 <html>
 <head>
+<!--<script type="text/javascript" src="main.js"></script>-->
+<!--<script type="text/javascript" src="httprpc.js"></script>-->
 <title>Chat</title>
 <style>
 body {
@@ -105,16 +107,39 @@ span.message {
 </div>
 </div>
 <script>
+//web3.setProvider(new web3.providers.HttpRpcProvider("http://localhost:8080"));
+
 function def(a, b) { return a ? a : b; }
 
-var shh = web3.shh;
-var db = web3.db;
+/*
+
 var myIdentity = db.get("chat", "identity");
 if (!+web3.toDecimal(myIdentity) || !shh.haveIdentity(myIdentity))
 {
 	myIdentity = shh.newIdentity();
 	db.put("chat", "identity", myIdentity);
 }
+*/
+var shh = web3.shh;
+var db = web3.db;
+
+var myIdentity;
+var myIdPromise = db.get('chat', 'identity').then(function (res) {
+    return shh.haveIdentity(res).then(function (have) {
+        if (!have) {
+            return shh.newIdentity().then(function (newId) {
+                db.put('chat', 'identity', newId);
+                return newId;
+            });
+        }
+        return res;
+    });
+}).then(function (id) {
+    myIdentity = id;
+    return id;
+}).catch(function (err) {
+
+});
 
 var name;
 var room;
@@ -126,24 +151,28 @@ var onMessage;
 var onPrivateMessage;
 var lastNameSend;
 
-function newMessage(m)
+function newMessage(ms)
 {
-	document.getElementById('log').innerHTML = document.getElementById('log').innerHTML +
-		'<div class="' + (+web3.toDecimal(m.to) ? "private" : "room") + '"><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> ' +
-		'<span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + '</span>' +
-		(+web3.toDecimal(m.to) ?
-			' -> <span class="me">' + name + '</span>: ' :
-			': ') +
-		'<span class="message">' + web3.toAscii(m.payload) + '</span></div>';
-	document.getElementById('log').scrollTop = '1500000';
+    ms.forEach(function (m) {
+        document.getElementById('log').innerHTML = document.getElementById('log').innerHTML +
+            '<div class="' + (+web3.toDecimal(m.to) ? "private" : "room") + '"><span class="timestamp">[' + new Date(m.sent * 1000).toLocaleTimeString() + ']</span> ' +
+            '<span class="who">' + (names[m.from] ? names[m.from] : m.from.substr(2, 8)) + '</span>' +
+            (+web3.toDecimal(m.to) ?
+                ' -> <span class="me">' + name + '</span>: ' :
+                ': ') +
+            '<span class="message">' + web3.toAscii(m.payload) + '</span></div>';
+        document.getElementById('log').scrollTop = '1500000';
+    });
 }
 
-function newName(m)
+function newName(ms)
 {
-	if (names[m.from])
-		delete invNames[names[m.from]];
-	names[m.from] = web3.toAscii(m.payload, 0);
-	invNames[names[m.from]] = m.from;
+    ms.forEach(function (m) {
+        if (names[m.from])
+            delete invNames[names[m.from]];
+        names[m.from] = web3.toAscii(m.payload, 0);
+        invNames[names[m.from]] = m.from;
+    });
 }
 
 function nameChanged()
@@ -223,12 +252,17 @@ document.getElementById('entry').onkeydown = function(event)
 }
 
 shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
-shh.watch({ 'topic': [web3.fromAscii('chat'), myIdentity], 'to': myIdentity }).arrived(newMessage);
+shh.watch({ 'topic': [web3.fromAscii('chat'), myIdPromise], 'to': myIdPromise }).arrived(newMessage);
 
-document.getElementById('name').value = def(db.getString("chat", "name"), myIdentity.substr(2, 8));
-document.getElementById('room').value = def(db.getString("chat", "room"), "general");
-roomChanged();
-nameChanged();
+db.getString('chat', 'name').then(function (res) {
+    document.getElementById('name').value = res;
+    nameChanged();
+});
+
+db.getString('chat', 'room').then(function (res) {
+    document.getElementById('room').value = res;
+    roomChanged();
+});
 
 </script>
 </body>
