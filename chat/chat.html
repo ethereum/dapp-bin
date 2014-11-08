@@ -165,7 +165,7 @@ function newMessage(ms)
     });
 }
 
-function newName(ms)
+var newName = function(ms)
 {
     ms.forEach(function (m) {
         if (names[m.from])
@@ -181,7 +181,7 @@ function nameChanged()
 	{
 		name = document.getElementById('name').value.replace(' ', '_');
 		db.putString("chat", "name", name);
-		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), "1"], payload: web3.fromAscii(name, 0), ttl: 60 });
+		shh.post({ from: myIdentity, topic: [web3.fromAscii('chat'), web3.fromAscii('namechange')], payload: web3.fromAscii(name, 0), ttl: 60 });
 		lastNameSend = new Date;
 	}
 }
@@ -251,17 +251,21 @@ document.getElementById('entry').onkeydown = function(event)
 	return true;
 }
 
-shh.watch({ 'topic': [web3.fromAscii('chat'), "1"] }).arrived(newName);
-shh.watch({ 'topic': [web3.fromAscii('chat'), myIdPromise], 'to': myIdPromise }).arrived(newMessage);
-
-db.getString('chat', 'name').then(function (res) {
-    document.getElementById('name').value = res;
-    nameChanged();
-});
+var pmWatch = shh.watch({ 'topic': [web3.fromAscii('chat'), myIdPromise], 'to': myIdPromise });
+pmWatch.arrived(function(f) { newMessage(f); });
+var nameChangeWatch = shh.watch({ 'topic': [web3.fromAscii('chat'), web3.fromAscii('namechange')] });
+nameChangeWatch.arrived(newName);
 
 db.getString('chat', 'room').then(function (res) {
-    document.getElementById('room').value = res;
-    roomChanged();
+	document.getElementById('room').value = res;
+	roomChanged();
+});
+
+myIdPromise.then(function() {
+	db.getString('chat', 'name').then(function (res) {
+		document.getElementById('name').value = res;
+		nameChanged();
+	});
 });
 
 </script>
