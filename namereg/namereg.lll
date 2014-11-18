@@ -8,12 +8,14 @@
     (when (= $0 'register) {
       (when @@ $32 (stop))
       (when @@(caller) [[@@(caller)]] 0)
+	  (log2 0 0 (caller) $32)
       [[$32]] (caller)
       [[(caller)]] $32
       (stop)
     })
-    (when (&& (= $0 'unregister) @@(caller)) {
-      [[@@(caller)]] 0
+	(when (&& (= $0 'unregister) @@(caller)) {
+	  (log2 0 0 @@(caller) (caller))
+	  [[@@(caller)]] 0
       [[(caller)]] 0
       (stop)
     })

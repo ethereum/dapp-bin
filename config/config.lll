@@ -2,10 +2,10 @@
   [[69]] (caller)
   (returnlll {
     (when (&& (= (calldatasize) 64) (= (caller) @@69))
-      (for {} (< @i (calldatasize)) [i](+ @i 64)
-        [[ (calldataload @i) ]] (calldataload (+ @i 32))
-      )
-    )
+	  [[$0]] $32
+	  [0] $32
+	  (log1 $0 0 32)
+	)
     (return @@ $0)
   })
 }

@@ -18,6 +18,7 @@
 	
 	(when (= $0 'approve) {
 		[[(sha3pair (caller) $32)]] $32
+		(log3 0 0 'approve (caller) $32)
 		(stop)
 	})
 
@@ -36,6 +37,8 @@
 		(when (< @fromBal value) (return 0))
 		[[ from ]]: (- @fromBal value)
 		[[ to ]]: (+ @@to value)
+		[0] value
+		(log3 0 32 'send (caller) $32)
 		(return 1)
 	})
 
@@ -45,6 +48,7 @@
 		[[(coinbase)]] (+ @@(coinbase) (* 1000 @b))
 		[[(caller)]] (+ @@(caller) (* 1000 @b))
 		[[0x42]] (number)
+		(log2 b 32 'mine (caller))
 		(return @b)
 	})
 

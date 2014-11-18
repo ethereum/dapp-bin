@@ -1,6 +1,5 @@
 {
 (set 'nameRegAddr (msg config 0))
-
 [0]'register [32]'Coins
 (msg allgas @nameRegAddr 0 0 64)
 (returnlll {
@@ -8,6 +7,9 @@
 	(def 'denom $32)
 	(def 'address (caller))
 	(when (|| (& 0xffffffffffffffffffffffffff name) @@name) (stop))
+	[0] name
+	[32] address
+	(log0 0 64)
 	(set 'n (+ @@0 1))
 	[[0]] @n
 	[[@n]] name
