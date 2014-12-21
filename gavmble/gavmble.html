@@ -1,0 +1,122 @@
+<!doctype>
+<html>
+<head>
+<script>
+//var web3 = require('web3');
+//web3.setProvider(new web3.providers.AutoProvider());
+var gavmbleAddress = "0x035b04df140561b8ed65f9b755786484fb061d63";
+var gavmbleAPI = [{"constant":false,"inputs":[{"name":"pIn256","type":"uint8"},{"name":"key","type":"hash256"}],"name":"bet","outputs":[]},{"constant":false,"inputs":[{"name":"bet","type":"hash256"}],"name":"claim","outputs":[]},{"constant":false,"inputs":[],"name":"empty","outputs":[]},{"constant":true,"inputs":[{"name":"bet","type":"hash256"}],"name":"winnings","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"key","type":"hash256"},{"name":"bet","type":"hash256"}],"name":"winningsWithKey","outputs":[{"name":"r","type":"uint256"}]}];
+var gavmble = web3.contract(gavmbleAddress, gavmbleAPI);
+
+// TODO: two other ways:
+//	var gavmbleAddress = "0x035b04df140561b8ed65f9b755786484fb061d63";
+//	var gavmble = web3.findContract(gavmbleAddress);
+// it should do so by looking up web3.eth.codeHashAt(gavmbleAddress) in a database (local/web/swarm
+// determined by developer). associated JSON is then substituted immediately prior to deployment.
+// OR:
+//	var gavmble = web3.createdContract("Gavmble");
+// Gavmble is the name of a contract in the IDE that created. associated address/json is substituted
+// immediately prior to deployment.
+	
+var tickets = [];
+
+function refreshTickets() {
+	console.log("refreshing...");
+	var uiBets = document.getElementById("bets");
+	uiBets.innerHTML = '';
+	web3.eth.number.then(function(number) {
+		console.log("number is " + number);
+		for (var i in tickets) { var t = tickets[i];
+			uiBets.innerHTML +=
+				'<div>' +
+				'<span class="amount">' + web3.toEth(t.amount) + '</span>' +
+				' @ ' +
+				'<span class="prob">' + web3.toDecimal(t.p) + ' in 256</span>' +
+				' : ' +
+				'<span id="' + t.bet + '" class="status">pending...</span>' +
+				'</div>'; }
+		for (var i in tickets) { var t = tickets[i];
+			if (+t.number < +number)
+			{
+				console.log("pending..." + t.bet);
+				gavmble.winnings(t.bet).call().then((function(t, w) {
+					return function(w) {
+						var e = document.getElementById(t.bet);
+						console.log("updating..." + t.bet);
+						if (w[0] > 0)
+						{
+							t.claimed = w[0];
+							gavmble.claim(t.bet).transact();
+							e.innerHTML = "claiming " + web3.toEth(w[0]) + "!";
+						}
+						else if (+web3.toDecimal(t.claimed))
+							e.innerHTML = "won " + web3.toEth(t.claimed);
+						else
+							e.innerHTML = "lost";
+					}
+				})(t));
+			} }
+	});
+}
+
+function claimTickets() {
+	console.log("checking claims...");
+	web3.eth.number.then(function(number) {
+		for (var i in tickets) { var t = tickets[i];
+			if (+t.number < +number && !t.claimed)
+			{
+				console.log("pending..." + t.bet);
+				gavmble.winnings(t.bet).call().then(function(w) {
+					if (w[0] > 0)
+					{
+						t.claimed = w;
+						gavmble.claim(t.bet).transact();
+						document.getElementById(t.bet);
+					}
+				});
+			} }
+	});
+}
+
+function makeid()
+{
+    var text = "0x";
+    var possible = "0123456789abcdef";
+    for (var i = 0; i < 64; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
+}
+	
+function newTicket(amount, p) {
+	var bet = makeid();
+	var amount = web3.fromDecimal(amount.toString() + '000000000000000000');
+	web3.eth.number.then(function(number) {
+		web3.sha3(bet).then(function(key) {
+			p = +p < 1 ? 1 : +p > 255 ? 255 : p;
+			var ticket = { 'amount': amount, 'p': web3.fromDecimal(p), 'key': key, 'bet': bet, 'number': number, 'claimed': 0 };
+			tickets.push(ticket);
+			gavmble.bet(web3.fromDecimal(p), key).transact({'value': amount});
+			refreshTickets();
+		});
+	});
+}
+
+web3.eth.watch('chain').changed(function() { refreshTickets(); claimTickets(); } );
+</script>
+<title>Gavmble</title>
+</head>
+<body>
+<div>
+<div style="float: right">
+Bets:
+<div id="bets">
+</div>
+</div>
+<div>Amount: <input id="amount" value="1"></input> ether</div>
+<div>Probability: <input id="pIn256" value="128"></input> / 256</div>
+<div><button id="bet" onClick="newTicket(document.getElementById('amount').value, document.getElementById('pIn256').value)">bet</button></div>
+</div>
+<script>
+</script>
+</body>
+</html>
