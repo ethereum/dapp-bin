@@ -1,6 +1,7 @@
 <!doctype>
 <html>
 <head>
+<title>Gavmble</title>
 <script>
 //var web3 = require('web3');
 //web3.setProvider(new web3.providers.AutoProvider());
@@ -59,25 +60,6 @@ function refreshTickets() {
 	});
 }
 
-function claimTickets() {
-	console.log("checking claims...");
-	web3.eth.number.then(function(number) {
-		for (var i in tickets) { var t = tickets[i];
-			if (+t.number < +number && !t.claimed)
-			{
-				console.log("pending..." + t.bet);
-				gavmble.winnings(t.bet).call().then(function(w) {
-					if (w[0] > 0)
-					{
-						t.claimed = w;
-						gavmble.claim(t.bet).transact();
-						document.getElementById(t.bet);
-					}
-				});
-			} }
-	});
-}
-
 function makeid()
 {
     var text = "0x";
@@ -93,7 +75,7 @@ function newTicket(amount, p) {
 	web3.eth.number.then(function(number) {
 		web3.sha3(bet).then(function(key) {
 			p = +p < 1 ? 1 : +p > 255 ? 255 : p;
-			var ticket = { 'amount': amount, 'p': web3.fromDecimal(p), 'key': key, 'bet': bet, 'number': number, 'claimed': 0 };
+			var ticket = { 'amount': amount, 'p': web3.fromDecimal(p), 'key': key, 'bet': bet, 'number': number, 'claimed': "0x" };
 			tickets.push(ticket);
 			gavmble.bet(web3.fromDecimal(p), key).transact({'value': amount});
 			refreshTickets();
@@ -101,20 +83,23 @@ function newTicket(amount, p) {
 	});
 }
 
-web3.eth.watch('chain').changed(function() { refreshTickets(); claimTickets(); } );
+web3.eth.watch('chain').changed(refreshTickets);
 </script>
 <title>Gavmble</title>
 </head>
 <body>
+<h1>Gavmble</h2>
 <div>
-<div style="float: right">
+<div style="float: right; background: #fee">
 Bets:
 <div id="bets">
 </div>
 </div>
+<div style="">
 <div>Amount: <input id="amount" value="1"></input> ether</div>
 <div>Probability: <input id="pIn256" value="128"></input> / 256</div>
 <div><button id="bet" onClick="newTicket(document.getElementById('amount').value, document.getElementById('pIn256').value)">bet</button></div>
+</div>
 </div>
 <script>
 </script>
