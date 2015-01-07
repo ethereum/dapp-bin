@@ -75,7 +75,7 @@ contract PriceFeed: owned, mortal {
 }
 
 contract owned {
-	surround onlyowner { if (msg.sender == owner) _ }
+	modifier onlyowner { if (msg.sender == owner) _ }
 	address owner = msg.sender;
 }
 
@@ -86,7 +86,7 @@ contract mortal extends owned {
 }
 
 contract costs extends owned {
-	surround costs { if (msg.value >= price) _ }
+	modifier costs { if (msg.value >= price) _ }
 	function setPrice(uint newPrice) onlyowned {
 		price = newPrice;
 	}
