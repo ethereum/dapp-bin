@@ -17,7 +17,7 @@ contract Gavmble {
     // `msg.caller` which provides the inverse Keccak hash of `key` will result in a transfer of
     // `web3.toEth(floor(floor(msg.value * 99 / 100) * 256 / pIn256))` back to them.
     function bet(uint8 pIn256, hash key) {
-        orders[key].coinbase = block.coinbase;
+        orders[key].coinbase = block.prevhash;
         orders[key].owner = msg.sender;
         orders[key].amount = msg.value * 99 / 100;
         orders[key].pIn256 = pIn256;
