@@ -4,16 +4,12 @@
 //   kobigurk (from #ethereum-dev)
 //   Gav Wood <g@ethdev.com>
 
-contract Config {
-	function register(uint id, address service) {}
-	function unregister(uint id) {}
-	function lookup(uint service) constant returns(address a) {}
-	function kill() {}
-}
+contract Config{function register(uint _,address __){}function unregister(uint _){}function lookup(uint _)constant returns(address __){}function kill(){}}
+
 contract NameReg {
 	function NameReg() {
 		owner = msg.sender;
-		address ca = 0xd5f9d8d94886e70b06e474c3fb14fd43e2f23970;
+		address ca = 0x661005d2720d855f1d9976f88bb10c1a3398c77f;
 		toName[ca] = "Config";
 		toAddress["Config"] = ca;
 		toName[address(this)] = "NameReg";
@@ -58,10 +54,18 @@ contract NameReg {
 	mapping (string32 => address) toAddress;
 }
 
-contract NameReg {
-	function register(string32 name) {}
-	function unregister() {}
-	function addressOf(string32 name) constant returns (address addr) {}
-	function nameOf(address addr) constant returns (string32 name) {}
-	function kill() {}
-}
+/*
+
+// Solidity Interface:
+contract NameReg{function register(string32 _){}function unregister(){}function addressOf(string32 _)constant returns(address _){}function nameOf(address _)constant returns(string32 _){}function kill(){}}
+
+// Example Solidity use:
+NameReg(addrNameReg).register("Some Contract");
+
+// JS Interface:
+var abiNameReg = [{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}];
+
+// Example JS use:
+web3.contract(addrNameReg, abiNameReg).register("My Name").transact();
+
+*/
