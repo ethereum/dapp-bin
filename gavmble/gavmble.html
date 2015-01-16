@@ -1,63 +1,79 @@
 <!doctype>
 <html>
 <head>
-<title>Gavmble</title>
+<title>Gavsino - The Ubiquitous Casino</title>
 <script>
 //var web3 = require('web3');
 //web3.setProvider(new web3.providers.AutoProvider());
-var gavmbleAddress = "0x035b04df140561b8ed65f9b755786484fb061d63";
-var gavmbleAPI = [{"constant":false,"inputs":[{"name":"pIn256","type":"uint8"},{"name":"key","type":"hash256"}],"name":"bet","outputs":[]},{"constant":false,"inputs":[{"name":"bet","type":"hash256"}],"name":"claim","outputs":[]},{"constant":false,"inputs":[],"name":"empty","outputs":[]},{"constant":true,"inputs":[{"name":"bet","type":"hash256"}],"name":"winnings","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"key","type":"hash256"},{"name":"bet","type":"hash256"}],"name":"winningsWithKey","outputs":[{"name":"r","type":"uint256"}]}];
-var gavmble = web3.contract(gavmbleAddress, gavmbleAPI);
+var abiConfig = [{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}];
+var abiGavsino = [{"constant":true,"inputs":[],"name":"totalShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"wei","type":"uint256"}],"name":"sharesValue","outputs":[{"name":"shares","type":"uint256"}]},{"constant":false,"inputs":[],"name":"buyIn","outputs":[]},{"constant":false,"inputs":[{"name":"shares","type":"uint256"}],"name":"cashOut","outputs":[]},{"constant":true,"inputs":[{"name":"key","type":"hash256"},{"name":"bet","type":"hash256"}],"name":"winningsWithKey","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"equity","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"sharesHeld","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"pIn256","type":"uint256"},{"name":"key","type":"hash256"}],"name":"bet","outputs":[]},{"constant":true,"inputs":[],"name":"valueOfShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"bet","type":"hash256"}],"name":"winnings","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"bet","type":"hash256"}],"name":"claim","outputs":[]},{"constant":false,"inputs":[{"name":"key","type":"hash256"}],"name":"recycle","outputs":[]},{"constant":true,"inputs":[{"name":"s","type":"uint256"}],"name":"valueOf","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[],"name":"empty","outputs":[]}];
+var addrConfig = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var addrGavsino;
+var Gavsino;
 
-// TODO: two other ways:
-//	var gavmbleAddress = "0x035b04df140561b8ed65f9b755786484fb061d63";
-//	var gavmble = web3.findContract(gavmbleAddress);
-// it should do so by looking up web3.eth.codeHashAt(gavmbleAddress) in a database (local/web/swarm
-// determined by developer). associated JSON is then substituted immediately prior to deployment.
-// OR:
-//	var gavmble = web3.createdContract("Gavmble");
-// Gavmble is the name of a contract in the IDE that created. associated address/json is substituted
-// immediately prior to deployment.
-	
 var tickets = [];
 
 function refreshTickets() {
-	console.log("refreshing...");
-	var uiBets = document.getElementById("bets");
-	uiBets.innerHTML = '';
+	Gavsino.sharesHeld().call().then(function(v){ /*console.log("myshares" + v);*/ document.getElementById("myshares").innerHTML = v[0]; });
+	Gavsino.totalShares().call().then(function(v){ /*console.log("totalshares" + v);*/ document.getElementById("totalshares").innerHTML = v[0]; });
+	Gavsino.equity().call().then(function(v){ /*console.log("equity" + v);*/ document.getElementById("equity").innerHTML = web3.toEth(web3.fromDecimal(v[0]+'')); });
+	Gavsino.valueOfShares().call().then(function(v){ /*console.log("mysharesvalue" + v);*/ document.getElementById("mysharesvalue").innerHTML = web3.toEth(web3.fromDecimal(v[0]+'')); });
+	sharesamountChanged();
+//	console.log("refreshing...");
 	web3.eth.number.then(function(number) {
-		console.log("number is " + number);
+		var uiBets = '';
+//		console.log("number is " + number);
 		for (var i in tickets) { var t = tickets[i];
-			uiBets.innerHTML +=
+			uiBets +=
 				'<div>' +
 				'<span class="amount">' + web3.toEth(t.amount) + '</span>' +
 				' @ ' +
 				'<span class="prob">' + web3.toDecimal(t.p) + ' in 256</span>' +
 				' : ' +
-				'<span id="' + t.bet + '" class="status">pending...</span>' +
+				'<span id="' + t.bet + '" class="status">' + (
+					t.claimed ? 'won ' + web3.toEth(t.claimed) :
+					t.recycled ? 'lost' :
+					'pending...'
+					) + '</span>' +
 				'</div>'; }
-		for (var i in tickets) { var t = tickets[i];
-			if (+t.number < +number)
+		document.getElementById("bets").innerHTML = uiBets;
+		for (var i in tickets)
+		{
+			var t = tickets[i];
+			if (+t.number < +number && !t.recycled && !t.claimed)
 			{
 				console.log("pending..." + t.bet);
-				gavmble.winnings(t.bet).call().then((function(t, w) {
+				Gavsino.winnings(t.bet).call().then((function(t, w) {
 					return function(w) {
 						var e = document.getElementById(t.bet);
-						console.log("updating..." + t.bet);
-						if (w[0] > 0)
+						if (!t.recycled && !t.claimed)
 						{
-							t.claimed = w[0];
-							gavmble.claim(t.bet).transact();
-							e.innerHTML = "claiming " + web3.toEth(w[0]) + "!";
+							console.log("updating..." + t.bet + "; winnings: " + w[0]);
+							if (w[0] > 0)
+							{
+								Gavsino.claim(t.bet).transact();
+								t.claimed = w[0];
+								e.innerHTML = 'claiming ' + web3.toEth(w[0]) + "!";
+							}
+							else
+							{
+								Gavsino.claim(t.bet).transact();
+								t.recycled = true;
+								e.innerHTML = "refunding 0.5%";
+							}
 						}
-						else if (+web3.toDecimal(t.claimed))
-							e.innerHTML = "won " + web3.toEth(t.claimed);
-						else
-							e.innerHTML = "lost";
 					}
 				})(t));
-			} }
+			}
+		}
 	});
+}
+
+function sharesamountChanged()
+{
+	var amount = web3.fromDecimal(document.getElementById("sharesamount").value.toString() + '000000000000000');
+//	console.log("amount: " + amount);
+	Gavsino.sharesValue(amount).call().then(function(v){ /*console.log("amount (shares): " + v[0]);*/ document.getElementById("sharesofvalue").innerHTML = v[0]; });
 }
 
 function makeid()
@@ -71,32 +87,58 @@ function makeid()
 	
 function newTicket(amount, p) {
 	var bet = makeid();
-	var amount = web3.fromDecimal(amount.toString() + '000000000000000000');
+	var amount = web3.fromDecimal(amount.toString() + '000000000000000');
 	web3.eth.number.then(function(number) {
 		web3.sha3(bet).then(function(key) {
 			p = +p < 1 ? 1 : +p > 255 ? 255 : p;
-			var ticket = { 'amount': amount, 'p': web3.fromDecimal(p), 'key': key, 'bet': bet, 'number': number, 'claimed': "0x" };
+			var ticket = { 'amount': amount, 'p': web3.fromDecimal(p), 'key': key, 'bet': bet, 'number': number, 'claimed': null };
 			tickets.push(ticket);
-			gavmble.bet(web3.fromDecimal(p), key).transact({'value': amount});
+			Gavsino.bet(+p, key).transact({'value': amount});
 			refreshTickets();
 		});
 	});
 }
 
-web3.eth.watch('chain').changed(refreshTickets);
+function buyIn(amountineth) {
+	amount = web3.fromDecimal(amountineth.toString() + '000000000000000');
+	Gavsino.buyIn().transact({'value': amount});
+}
+
+function cashOut(shares) {
+	Gavsino.cashOut(shares).transact();
+}
+
+var Config = web3.contract(addrConfig, abiConfig);
+Config.lookup(2).call().then(function(n){
+	addrGavsino = n[0];
+	Gavsino = web3.contract(addrGavsino, abiGavsino);
+	web3.eth.accounts.then(function(as) { 
+		w = web3.eth.watch({address: addrGavsino});
+		w.changed(function(d) {
+			refreshTickets();
+		});
+	});
+});
+
+//web3.eth.watch().changed(refreshTickets);
 </script>
-<title>Gavmble</title>
+<title>Gavsino - The Ubiquitous Casino</title>
 </head>
 <body>
-<h1>Gavmble</h2>
+<h1>Gavsino - The Ubiquitous Casino</h2>
 <div>
-<div style="float: right; background: #fee">
-Bets:
+<div style="float: right; background: #fee; width: 15em; height: 30em">
+<h3>Bets</h3>
 <div id="bets">
 </div>
 </div>
 <div style="">
-<div>Amount: <input id="amount" value="1"></input> ether</div>
+<h3>Shares</h3>
+<div>Shares held: <span id="myshares"></span> shares (worth <span id="mysharesvalue"></span>) of <span id="totalshares"></span> (worth <span id="equity"></span>).</div>
+<div>Amount: <input id="sharesamount" value="1"></input> finney = <span id="sharesofvalue"></span> shares.</div>
+<div><button id="buyIn" onClick="buyIn(document.getElementById('sharesamount').value)">buy in</button><button id="cashOut" onClick="cashOut(document.getElementById('sharesofvalue').innerHTML)">cash out</button></div>
+<h3>Bet</h3>
+<div>Amount: <input id="amount" value="1"></input> finney</div>
 <div>Probability: <input id="pIn256" value="128"></input> / 256</div>
 <div><button id="bet" onClick="newTicket(document.getElementById('amount').value, document.getElementById('pIn256').value)">bet</button></div>
 </div>

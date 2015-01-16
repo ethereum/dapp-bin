@@ -1,4 +1,4 @@
-// NameReg
+//sol NameReg
 // Simple global name registrar.
 // @authors:
 //   kobigurk (from #ethereum-dev)
@@ -13,8 +13,10 @@ contract NameReg {
 		toName[ca] = "Config";
 		toAddress["Config"] = ca;
 		toName[address(this)] = "NameReg";
-		toAddress["NameReg"] = address(this);
-		Config(ca).register(1, address(this));
+		toAddress["NameReg"] = this;
+		Config(ca).register(1, this);
+		log1(0, hash256(ca));
+		log1(0, hash256(this));
 	}
 
 	function register(string32 name) {
@@ -24,14 +26,17 @@ contract NameReg {
 		// Unregister previous name if there was one.
 		if (toName[msg.sender] != "")
 			toAddress[toName[msg.sender]] = 0;
+			
 		toName[msg.sender] = name;
 		toAddress[name] = msg.sender;
+		log1(0, hash256(msg.sender));
 	}
 
 	function unregister() {
 		string32 n = toName[msg.sender];
 		if (n == "")
 			return;
+		log1(0, hash256(toAddress[n]));
 		toName[msg.sender] = "";
 		toAddress[n] = address(0);
 	}
@@ -66,6 +71,6 @@ NameReg(addrNameReg).register("Some Contract");
 var abiNameReg = [{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}];
 
 // Example JS use:
-web3.contract(addrNameReg, abiNameReg).register("My Name").transact();
+web3.eth.contract(addrNameReg, abiNameReg).register("My Name").transact();
 
 */
