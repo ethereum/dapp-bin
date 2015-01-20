@@ -7,6 +7,7 @@
 contract Config{function register(uint _,address __){}function unregister(uint _){}function lookup(uint _)constant returns(address __){}function kill(){}}
 
 contract NameReg {
+
 	function NameReg() {
 		owner = msg.sender;
 		address ca = 0x661005d2720d855f1d9976f88bb10c1a3398c77f;

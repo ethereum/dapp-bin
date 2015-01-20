@@ -200,13 +200,11 @@ span#unc span {
 </div>
 </div>
 <script>
-var eth = web3.eth;
-
-var configAddr = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
-var myAddrs = eth.accounts;
-
-var nameRegAddr;
-var gavCoinAddr;
+var abiConfig = [{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}];
+var abiGavcoin = [{"constant":true,"inputs":[],"name":"totalShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"wei","type":"uint256"}],"name":"sharesValue","outputs":[{"name":"shares","type":"uint256"}]},{"constant":false,"inputs":[],"name":"buyIn","outputs":[]},{"constant":false,"inputs":[{"name":"shares","type":"uint256"}],"name":"cashOut","outputs":[]},{"constant":true,"inputs":[{"name":"key","type":"hash256"},{"name":"bet","type":"hash256"}],"name":"winningsWithKey","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"equity","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"sharesHeld","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"pIn256","type":"uint256"},{"name":"key","type":"hash256"}],"name":"bet","outputs":[]},{"constant":true,"inputs":[],"name":"valueOfShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"bet","type":"hash256"}],"name":"winnings","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"bet","type":"hash256"}],"name":"claim","outputs":[]},{"constant":false,"inputs":[{"name":"key","type":"hash256"}],"name":"recycle","outputs":[]},{"constant":true,"inputs":[{"name":"s","type":"uint256"}],"name":"valueOf","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[],"name":"empty","outputs":[]}];
+var addrConfig = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var addrGavcoin;
+var Gavcoin;
 
 var checkto = function() {
 	var s = "";
@@ -369,6 +367,19 @@ updateGavCoinTxs = function() {
 }
 
 eth.watch("chain").changed(refresh);
+
+var Config = web3.contract(addrConfig, abiConfig);
+Config.lookup(2).call().then(function(n){
+	addrGavsino = n[0];
+	Gavsino = web3.contract(addrGavsino, abiGavsino);
+	web3.eth.accounts.then(function(as) { 
+		w = web3.eth.watch({address: addrGavsino});
+		w.changed(function(d) {
+			refreshHoldings();
+			refreshTickets();
+		});
+	});
+});
 
 </script>
 </body>

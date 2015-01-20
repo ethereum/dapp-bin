@@ -44,10 +44,7 @@ contract Gavsino {
 			uint w = winningsWithKey(key, bet);
 			msg.sender.send(w);
 			m_owing -= m_orders[key].amount;
-			//delete orders[key];
-			m_orders[key].amount = 0;
-			m_orders[key].pIn256 = 0;
-			m_orders[key].number = 0;
+			delete m_orders[key];
 			log1(0, key);
 		}
 	}
@@ -57,19 +54,17 @@ contract Gavsino {
 			// out of date: sender gets the deposit.
 			msg.sender.send(m_orders[key].amount * 1 / 200);	// 0.5% refund for cleanup
 			m_owing -= m_orders[key].amount;
-			//delete orders[key];
-			m_orders[key].amount = 0;
-			m_orders[key].pIn256 = 0;
-			m_orders[key].number = 0;
+			delete m_orders[key];
 		}			
 	}
 
 	function winningsWithKey(hash key, hash bet) constant returns(uint r) {	// payout is on 99% of original value. house keeps 0.5%, 0.5% refunded in claim.
+		uint refund = (m_orders[key].amount * 1 / 200);
 		if (block.number <= m_orders[key].number + 255 &&
 			uint(sha3(hash(block.blockhash(m_orders[key].number))) ^ bet) & 0xff < m_orders[key].pIn256)
-		    return ((m_orders[key].amount * 99 / 100) * 256 / m_orders[key].pIn256) + (m_orders[key].amount * 1 / 200);
+		    return ((m_orders[key].amount * 99 / 100) * 256 / m_orders[key].pIn256) + refund;
 		else
-		    return 0;
+		    return refund;
 	}
 
 	function winnings(hash bet) constant returns(uint r) {

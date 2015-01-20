@@ -85,15 +85,6 @@ contract mortal extends owned {
 	}
 }
 
-contract costs extends owned {
-	modifier costs { if (msg.value >= price) _ }
-	function setPrice(uint newPrice) onlyowned {
-		price = newPrice;
-	}
-	
-	uint price = 0;
-}
-
 contract named extends owned, mortal {
 	function named(string name) {
 		address ConfigAddress = 0xd5f9d8d94886e70b06e474c3fb14fd43e2f23970;
@@ -108,6 +99,15 @@ contract named extends owned, mortal {
 		NameReg(nameregAddress).unregister();
 		mortal.kill();
 	}
+}
+
+contract costs extends owned {
+	modifier costs { if (msg.value >= price) _ }
+	function setPrice(uint newPrice) onlyowned {
+		price = newPrice;
+	}
+	
+	uint price = 0;
 }
 
 // TODO: or better:

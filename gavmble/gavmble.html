@@ -13,12 +13,15 @@ var Gavsino;
 
 var tickets = [];
 
-function refreshTickets() {
+function refreshHoldings() {
 	Gavsino.sharesHeld().call().then(function(v){ /*console.log("myshares" + v);*/ document.getElementById("myshares").innerHTML = v[0]; });
 	Gavsino.totalShares().call().then(function(v){ /*console.log("totalshares" + v);*/ document.getElementById("totalshares").innerHTML = v[0]; });
 	Gavsino.equity().call().then(function(v){ /*console.log("equity" + v);*/ document.getElementById("equity").innerHTML = web3.toEth(web3.fromDecimal(v[0]+'')); });
 	Gavsino.valueOfShares().call().then(function(v){ /*console.log("mysharesvalue" + v);*/ document.getElementById("mysharesvalue").innerHTML = web3.toEth(web3.fromDecimal(v[0]+'')); });
 	sharesamountChanged();
+}
+
+function refreshTickets() {
 //	console.log("refreshing...");
 	web3.eth.number.then(function(number) {
 		var uiBets = '';
@@ -115,6 +118,7 @@ Config.lookup(2).call().then(function(n){
 	web3.eth.accounts.then(function(as) { 
 		w = web3.eth.watch({address: addrGavsino});
 		w.changed(function(d) {
+			refreshHoldings();
 			refreshTickets();
 		});
 	});
@@ -144,6 +148,7 @@ Config.lookup(2).call().then(function(n){
 </div>
 </div>
 <script>
+document.getElementById('sharesamount').oninput = function() { console.log("HELLO"); sharesamountChanged(); };
 </script>
 </body>
 </html>
