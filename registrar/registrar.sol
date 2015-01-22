@@ -9,8 +9,8 @@ contract NameRegister {
 }
 
 contract Register is NameRegister {
-	function getAddress(string32 _name) constant returns (address o_owner) {}
-	function getBeneficiary(string32 _name) constant returns (address o_owner) {}
+	function getOwner(string32 _name) constant returns (address o_owner) {}
+	function getAddress(string32 _name) constant returns (address o_address) {}
 	function getRegister(string32 _name) constant returns (Register o_register) {}
 	function getContent(string32 _name) constant returns (hash o_content) {}
 	
@@ -53,7 +53,7 @@ contract Registrar is Register {
 		}
 	}
 
-	function setBeneficiary(string32 _name, address _a, bool _primary) {
+	function setAddress(string32 _name, address _a, bool _primary) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].primary = _a;
 			if (_primary)
