@@ -2,11 +2,8 @@
 // Simple global configuration registrar.
 // @authors:
 //   Gav Wood <g@ethdev.com>
-contract Config {
-	function Config() {
-		owner = msg.sender;
-	}
-
+#require owned, mortal
+contract Config is mortal, owned {
 	function register(uint id, address service) {
 		if (tx.origin != owner)
 			return;
@@ -21,23 +18,17 @@ contract Config {
 		log1(0, id);
 	}
 
-	function kill() {
-		if (msg.sender == owner)
-			suicide(owner);
-	}
-
 	function lookup(uint service) constant returns(address a) {
 		return services[service];
 	}
 
-	address owner;
 	mapping (uint => address) services;
 }
 
 /*
 
 // Solidity Interface:
-contract Config{function register(uint,address){}function unregister(uint){}function lookup(uint)constant returns(address){}function kill(){}}
+contract Config{function lookup(uint256 service)constant returns(address a){}function kill(){}function unregister(uint256 id){}function register(uint256 id,address service){}}
 
 // Example Solidity use:
 address addrConfig = 0x661005d2720d855f1d9976f88bb10c1a3398c77f;

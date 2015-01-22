@@ -4,19 +4,20 @@
 //   kobigurk (from #ethereum-dev)
 //   Gav Wood <g@ethdev.com>
 
-contract Config{function register(uint _,address __){}function unregister(uint _){}function lookup(uint _)constant returns(address __){}function kill(){}}
+contract NameRegister {
+	function getAddress(string32 _name) constant returns (address o_owner) {}
+	function getName(address _owner) constant returns (string32 o_name) {}
+}
 
-contract NameReg {
-
+#require Config, owned
+contract NameReg is owned, NameRegister {
 	function NameReg() {
-		owner = msg.sender;
-		address ca = 0x661005d2720d855f1d9976f88bb10c1a3398c77f;
-		toName[ca] = "Config";
-		toAddress["Config"] = ca;
-		toName[address(this)] = "NameReg";
+		toName[Config()] = "Config";
+		toAddress["Config"] = Config();
+		toName[this] = "NameReg";
 		toAddress["NameReg"] = this;
-		Config(ca).register(1, this);
-		log1(0, hash256(ca));
+		Config().register(1, this);
+		log1(0, hash256(Config()));
 		log1(0, hash256(this));
 	}
 
@@ -42,11 +43,6 @@ contract NameReg {
 		toAddress[n] = address(0);
 	}
 
-	function kill() {
-		if (msg.sender == owner)
-			suicide(owner);
-	}
-
 	function addressOf(string32 name) constant returns (address addr) {
 		return toAddress[name];
 	}
@@ -55,15 +51,15 @@ contract NameReg {
 		return toName[addr];
 	}
 	
-	address owner;
 	mapping (address => string32) toName;
 	mapping (string32 => address) toAddress;
 }
 
+
 /*
 
 // Solidity Interface:
-contract NameReg{function register(string32 _){}function unregister(){}function addressOf(string32 _)constant returns(address _){}function nameOf(address _)constant returns(string32 _){}function kill(){}}
+contract NameReg{function kill(){}function register(string32 name){}function addressOf(string32 name)constant returns(address addr){}function unregister(){}function nameOf(address addr)constant returns(string32 name){}}
 
 // Example Solidity use:
 NameReg(addrNameReg).register("Some Contract");

@@ -13,7 +13,7 @@
 	;; stakerOrMiner -> 0 if staker, 1 if miner; derived from first arg
 	[stakerOrMiner] (! (! $0))
 	
-	;; account -> caller if staker, caller + 2^260 if miner
+	;; account -> caller if staker, caller + 2^160 if miner
 	[acc] (+ (caller) (* (exp 2 160) @stakerOrMiner))
 	
 	;; add call value to that account and to internal count.
