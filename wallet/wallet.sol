@@ -11,9 +11,10 @@ contract multiowned {
 		uint ownersDone;
 	}
 
-	// this contract only has one type of event: it can accept a confirmation, in which case
+	// this contract only has two types of events: it can accept a confirmation, in which case
 	// we record owner and operation (hash) alongside it.
 	event Confirmation(address owner, hash operation);
+	// the other is in the case of an owner changing. here we record the old and new owners.
 	event OwnerChanged(address oldOwner, address newOwner);
 
 	// constructor is given number of sigs required to do protected "onlyowners" transactions
