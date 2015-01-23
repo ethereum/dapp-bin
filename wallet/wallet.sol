@@ -14,6 +14,7 @@ contract multiowned {
 	// this contract only has one type of event: it can accept a confirmation, in which case
 	// we record owner and operation (hash) alongside it.
 	event Confirmation(address owner, hash operation);
+	event OwnerChanged(address oldOwner, address newOwner);
 
 	// constructor is given number of sigs required to do protected "onlyowners" transactions
 	// as well as the selection of addresses capable of confirming them. 
@@ -76,7 +77,10 @@ contract multiowned {
 	function changeOwner(address _from, address _to) external multisig(sha3(msg.sig, _from, _to)) {
 		uint ownerIndex = m_owners.find(_from);
 		if (ownerIndex != notfound)
+		{
 			m_owners[ownerIndex] = _to;
+			OwnerChanged(_from, _to);
+		}
 	}
 	
 	// the number of owners that must confirm the same operation before it is run.
