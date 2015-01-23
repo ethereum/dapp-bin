@@ -175,22 +175,26 @@ contract multisig {
 	function confirm(hash _h);
 }
 
-// usage
+// usage:
 // hash h = Wallet(w).from(oneOwner).transact(to, value, data);
-// Wallet(w).from(anotherOwner).transact(
-
+// Wallet(w).from(anotherOwner).confirm(h);
 contract Wallet is multisig multiowned daylimit {
+	// Transaction structure to remember details of transaction lest it need be saved for a later call.
 	structure Transaction {
 		address to;
 		uint value;
 		byte[] data;
 	}
 	
-	// log entries
+	// logged events:
+	// Funds has arrived into the wallet (record how much).
 	event CashIn(uint value);
-	event SingleTransact(indexed string32 = "out", uint value, address owner, address to);
-	event MultiTransact(indexed string32 = "out", address owner, hash operation, uint value, address to, byte[] data);
+	// Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
+	event SingleTransact(indexed string32 = "out", address owner, uint value, address to);
+	// Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
+	event MultiTransact(indexed string32 = "out", address owner, hash operation, uint value, address to);
 	
+	// constructor - just pass on the owner arra to the multiowned.
 	function Wallet(address[] _owners) multiowned(2, _owners) {}
 	
 	// kills the contract sending everything to `_to`.
@@ -233,7 +237,7 @@ contract Wallet is multisig multiowned daylimit {
 	function confirm(hash _h) external onlyowners(_h) {
 		if (m_txs[_h].to != 0) {
 			m_txs[_h].to.call(m_txs[_h].value, m_txs[_h].data);
-			MultiTransact(m_txs[_h].value, m_txs[_h].to);
+			MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to);
 			delete m_txs[_h];
 		}
 	}
@@ -241,7 +245,7 @@ contract Wallet is multisig multiowned daylimit {
 	// internally confirm transaction with all of the info. returns true iff confirmed good and executed.
 	function confirm(hash _h, address _to, uint _value, bytes[] _data) private onlyowners(_h) returns (bool _r) {
 		_to.call(_value, _data);
-		MultiTransact(_value, _to);
+		MultiTransact(msg.sender, _h, _value, _to);
 		_r = true;
 	}
 
