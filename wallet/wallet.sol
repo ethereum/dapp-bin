@@ -191,9 +191,9 @@ contract Wallet is multisig multiowned daylimit {
 	// Funds has arrived into the wallet (record how much).
 	event CashIn(uint value);
 	// Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
-	event SingleTransact(indexed string32 = "out", address owner, uint value, address to);
+	event SingleTransact(string32 indexed out = "out", address owner, uint value, address to);
 	// Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
-	event MultiTransact(indexed string32 = "out", address owner, hash operation, uint value, address to);
+	event MultiTransact(string32 indexed out = "out", address owner, hash operation, uint value, address to);
 	
 	// constructor - just pass on the owner arra to the multiowned.
 	function Wallet(address[] _owners) multiowned(2, _owners) {}
