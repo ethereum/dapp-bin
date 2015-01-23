@@ -106,7 +106,7 @@ contract multiowned {
 	// find: m_owners.find(m_owners[0]) == 0, ..., m_owners.find(m_owners[m_owners.size() - 1]) == m_owners.size() - 1,  m_owners.find(...) == (uint)-1 == notfound
 	// append: m_owners.insert(n): m_owners[m_owners.size() - 1] == n, m_owners.lookup(n) == m_owners.size() - 1
 	// delete: delete m_owners[n]
-	// clear: m_owners.clear(): m_owners.size() == 0
+	// clear: m_owners.clear(): m_owners.size() == 0 (or just delete m_owners)
 	//}
 
 	/*	
@@ -136,7 +136,7 @@ contract daylimit is multiowned {
 	
 	// (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
 	function resetSpentToday() external onlyowners(sha3(msg.sig)) {
-		m_dailyLimit = _newLimit;
+		m_spentToday = 0;
 	}
 	
 	// checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
