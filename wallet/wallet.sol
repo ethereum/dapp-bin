@@ -95,9 +95,9 @@ contract multiowned {
 	// sha3(BASE + 1) => address[0],
 	// ...
 	// sha3(BASE + N) => address[N-1],
-	// sha3(BASE ++ address[0]) => 0,
+	// sha3(BASE ++ address[0]) => 1,
 	// ...
-	// sha3(BASE ++ address[N-1]) -> N-1
+	// sha3(BASE ++ address[N-1]) -> N
 	//
 	// provides:
 	// size: m_owners.size()
