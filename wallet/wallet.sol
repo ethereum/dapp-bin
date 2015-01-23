@@ -85,7 +85,7 @@ contract multiowned {
 	}
 	
 	// the number of owners that must confirm the same operation before it is run.
-	constant uint m_required;
+	uint constant m_required;
 
 	//stateset owners {
 	set address[] m_owners;	
