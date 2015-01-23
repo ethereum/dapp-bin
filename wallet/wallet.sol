@@ -75,7 +75,7 @@ contract multiowned {
 	}
 	
 	// replaces an owner `_from` with another `_to`.
-	function changeOwner(address _from, address _to) external multisig(sha3(msg.sig, _from, _to)) {
+	function changeOwner(address _from, address _to) external multiowned(sha3(msg.sig, _from, _to)) {
 		uint ownerIndex = m_owners.find(_from);
 		if (ownerIndex != notfound)
 		{
