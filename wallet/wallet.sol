@@ -18,7 +18,7 @@ contract multiowned {
 
 	// constructor is given number of sigs required to do protected "onlyowners" transactions
 	// as well as the selection of addresses capable of confirming them. 
-	function multisig(uint _required, address[] _owners) {
+	function multiowned(uint _required, address[] _owners) {
 		m_required = _required;
 		m_owners = _owners;
 	}
@@ -191,7 +191,7 @@ contract Wallet is multisig multiowned daylimit {
 	event SingleTransact(indexed string32 = "out", uint value, address owner, address to);
 	event MultiTransact(indexed string32 = "out", address owner, hash operation, uint value, address to, byte[] data);
 	
-	function Wallet(address[] _owners) onlyowners(2, _owners) {}
+	function Wallet(address[] _owners) multiowned(2, _owners) {}
 	
 	// kills the contract sending everything to `_to`.
 	function kill(address _to) external onlyowners(sha3("kill", _to)) {
