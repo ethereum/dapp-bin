@@ -56,7 +56,7 @@ img {
    <script>
 var abiConfig = [{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}];
 var abiNameReg = [{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}];
-var addrConfig = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
+var addrConfig = "0xc6d9d2cd449a754c494264e1809c50e34d64562b";
 var addrNameReg;
 var NameReg;
 var w;
@@ -65,31 +65,28 @@ regName = function()
 {
 	var name = document.getElementById("regname").value;
 	if (name != "")
-			NameReg.register(name).transact();
+			NameReg.register(name);
 }
 unregName = function()
 {
-	NameReg.unregister().transact();
+	NameReg.unregister();
 }
 lookupName = function()
 {
-	NameReg.addressOf(document.getElementById("name").value).call().then(function(n) { document.getElementById("addr").value = n; });
+	var a = NameReg.addressOf(document.getElementById("name").value);
+	document.getElementById("addr").value = +web3.toDecimal(a) ? a.substring(2) : "";
 }
 lookupAddr = function()
 {
-	NameReg.nameOf("0x" + document.getElementById("addr").value).call().then(function(n) { document.getElementById("name").value = n; });
+	document.getElementById("name").value = NameReg.nameOf("0x" + document.getElementById("addr").value);
 }
-web3.contract(addrConfig, abiConfig).lookup(1).call().then(function(n){
-	addrNameReg = n[0];
-	NameReg = web3.contract(addrNameReg, abiNameReg);
-	web3.eth.accounts.then(function(as) { 
-		w = web3.eth.watch({address: addrNameReg, topics: as[0]});
-		w.changed(function(d) {
-			NameReg.nameOf(as[0]).call().then(function(n) { document.getElementById("yourname").innerHTML = n; });
-		});
-	});
+addrNameReg = web3.eth.contract(addrConfig, abiConfig).lookup(1);
+NameReg = web3.eth.contract(addrNameReg, abiNameReg);
+w = web3.eth.watch({address: addrNameReg, topics: web3.eth.accounts[0]});
+w.changed(function(d) {
+	document.getElementById("yourname").innerHTML = NameReg.nameOf(web3.eth.accounts[0]);
 });
-
+document.getElementById("yourname").innerHTML = NameReg.nameOf(web3.eth.accounts[0]);
     </script>
     <span id="test"></span>
   </body>
