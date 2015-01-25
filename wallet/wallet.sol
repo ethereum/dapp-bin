@@ -171,9 +171,9 @@ contract daylimit is multiowned {
 
 // interface contract for multisig proxy contracts.
 contract multisig {
-	function changeOwner(address _from, address _to);
-	function transact(address _to, uint _value) returns (hash _r);
-	function confirm(hash _h);
+	function changeOwner(address _from, address _to) external;
+	function transact(address _to, uint _value, byte[] _data) external returns (hash _r);
+	function confirm(hash _h) external;
 }
 
 // usage:
@@ -215,7 +215,7 @@ contract Wallet is multisig multiowned daylimit {
 	// If not, goes into multisig process. We provide a hash on return to allow the sender to provide
 	// shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
 	// and _data arguments). They still get the option of using them if they want, anyways.
-	function transact(address _to, uint _value, bytes[] _data) external returns (hash _r) {
+	function transact(address _to, uint _value, byte[] _data) external returns (hash _r) {
 		// first, take the opportunity to check that we're under the daily limit.
 		if (underLimit(_value)) {
 			log SingleTransact(_value, _to);
