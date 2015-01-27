@@ -1,16 +1,13 @@
 //sol Coin
+// Simple minable coin.
+// @authors:
+//   Gav Wood <g@ethdev.com>
 
-contract Config{function register(uint _,address __){}function unregister(uint _){}function lookup(uint _)constant returns(address __){}function kill(){}}
-contract NameReg{function register(string32 _){}function unregister(){}function addressOf(string32 _)constant returns(address __){}function nameOf(address _)constant returns(string32 __){}function kill(){}}
+#require named, owned, coin, Coin
 
-contract GavCoin {
+contract GavCoin is Coin, named("GavCoin"), coin("GAV", 1000), owned {
 	function GavCoin() {
-		m_owner = msg.sender;
-		address addrConfig = 0x661005d2720d855f1d9976f88bb10c1a3398c77f;
-		Config(addrConfig).register(4, this);
-		address addrNameReg = Config(addrConfig).lookup(1);
-		NameReg(addrNameReg).register("GavCoin");
-		m_balances[m_owner] = 1000000000;
+		m_balances[owner] = 1000000000;
 		m_lastNumberMined = block.number;
 	}
 	
@@ -62,7 +59,6 @@ contract GavCoin {
 		}
 	}
 	
-	address m_owner;
 	mapping (address => uint) m_balances;
 	mapping (address => mapping (address => bool)) m_approved;
 	uint m_lastNumberMined;
@@ -70,10 +66,8 @@ contract GavCoin {
 
 
 /*
+var GavCoin = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"_target","type":"address"},{"name":"_proxy","type":"address"}],"name":"isApprovedFor","outputs":[{"name":"_r","type":"bool"}]},{"constant":true,"inputs":[{"name":"_proxy","type":"address"}],"name":"isApproved","outputs":[{"name":"_r","type":"bool"}]},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoinFrom","outputs":[]},{"constant":false,"inputs":[],"name":"mine","outputs":[]},{"constant":true,"inputs":[{"name":"_a","type":"address"}],"name":"coinBalanceOf","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoin","outputs":[]},{"constant":true,"inputs":[],"name":"coinBalance","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_a","type":"address"}],"name":"approve","outputs":[]}]);
 
-[{"constant":true,"inputs":[{"name":"_target","type":"address"},{"name":"_proxy","type":"address"}],"name":"isApprovedFor","outputs":[{"name":"_r","type":"bool"}]},{"constant":true,"inputs":[{"name":"_proxy","type":"address"}],"name":"isApproved","outputs":[{"name":"_r","type":"bool"}]},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoinFrom","outputs":[]},{"constant":false,"inputs":[],"name":"mine","outputs":[]},{"constant":true,"inputs":[{"name":"_a","type":"address"}],"name":"coinBalanceOf","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoin","outputs":[]},{"constant":true,"inputs":[],"name":"coinBalance","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_a","type":"address"}],"name":"approve","outputs":[]}]
-
-
-contract Coin{function isApprovedFor(address _target,address _proxy)constant returns(bool _r){}function isApproved(address _proxy)constant returns(bool _r){}function sendCoinFrom(address _from,uint256 _val,address _to){}function mine(){}function coinBalanceOf(address _a)constant returns(uint256 _r){}function sendCoin(uint256 _val,address _to){}function coinBalance()constant returns(uint256 _r){}function approve(address _a){}}
+contract GavCoin{function isApprovedFor(address _target,address _proxy)constant returns(bool _r){}function isApproved(address _proxy)constant returns(bool _r){}function sendCoinFrom(address _from,uint256 _val,address _to){}function mine(){}function coinBalanceOf(address _a)constant returns(uint256 _r){}function sendCoin(uint256 _val,address _to){}function coinBalance()constant returns(uint256 _r){}function approve(address _a){}}
 
 */

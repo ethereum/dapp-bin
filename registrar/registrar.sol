@@ -17,7 +17,9 @@ contract Register is NameRegister {
 	function getName(address _owner) constant returns (string32 o_name) {}
 }
 
-contract Registrar is Register {
+#require named
+
+contract Registrar is Register, named("Registrar") {
 	struct Record {
 		address owner;
 		address primary;
@@ -88,7 +90,7 @@ contract Registrar is Register {
 	
 	function getName(address _owner) constant returns (string32 o_name) { o_name = m_toName[_owner]; }
 	
-/*	logentry MoreLog {
+/*	event MoreLog {
 		index uint l;
 		index uint m;
 		hash x;

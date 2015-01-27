@@ -200,11 +200,16 @@ span#unc span {
 </div>
 </div>
 <script>
-var abiConfig = [{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}];
-var abiGavcoin = [{"constant":true,"inputs":[],"name":"totalShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"wei","type":"uint256"}],"name":"sharesValue","outputs":[{"name":"shares","type":"uint256"}]},{"constant":false,"inputs":[],"name":"buyIn","outputs":[]},{"constant":false,"inputs":[{"name":"shares","type":"uint256"}],"name":"cashOut","outputs":[]},{"constant":true,"inputs":[{"name":"key","type":"hash256"},{"name":"bet","type":"hash256"}],"name":"winningsWithKey","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"equity","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"sharesHeld","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"pIn256","type":"uint256"},{"name":"key","type":"hash256"}],"name":"bet","outputs":[]},{"constant":true,"inputs":[],"name":"valueOfShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"bet","type":"hash256"}],"name":"winnings","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"bet","type":"hash256"}],"name":"claim","outputs":[]},{"constant":false,"inputs":[{"name":"key","type":"hash256"}],"name":"recycle","outputs":[]},{"constant":true,"inputs":[{"name":"s","type":"uint256"}],"name":"valueOf","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[],"name":"empty","outputs":[]}];
-var addrConfig = "0x661005d2720d855f1d9976f88bb10c1a3398c77f";
-var addrGavcoin;
-var Gavcoin;
+var Config = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]}]);
+
+var NameReg = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"getName","outputs":[{"name":"o_name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getAddress","outputs":[{"name":"o_owner","type":"address"}]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]}]);
+
+var CoinReg = web3.eth.contractFromAbi([{"constant":true,"inputs":[],"name":"count","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"i","type":"uint256"}],"name":"info","outputs":[{"name":"addr","type":"address"},{"name":"name","type":"string3"},{"name":"denom","type":"uint256"}]},{"constant":false,"inputs":[{"name":"name","type":"string3"},{"name":"denom","type":"uint256"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}]);
+
+var GavCoin = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"_target","type":"address"},{"name":"_proxy","type":"address"}],"name":"isApprovedFor","outputs":[{"name":"_r","type":"bool"}]},{"constant":true,"inputs":[{"name":"_proxy","type":"address"}],"name":"isApproved","outputs":[{"name":"_r","type":"bool"}]},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoinFrom","outputs":[]},{"constant":false,"inputs":[],"name":"mine","outputs":[]},{"constant":true,"inputs":[{"name":"_a","type":"address"}],"name":"coinBalanceOf","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoin","outputs":[]},{"constant":true,"inputs":[],"name":"coinBalance","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_a","type":"address"}],"name":"approve","outputs":[]}]);
+
+var theNameReg;
+var theGavCoin;
 
 var checkto = function() {
 	var s = "";
@@ -295,36 +300,42 @@ var pretty = function(x) {
 	return x.substr(2);
 }
 
+var oGCA;
 var gcTxWatch;
 var latest;
 var updateGavCoinTxs;
 
 var refresh = function() {
-	nameRegAddr = eth.stateAt(configAddr, "0", 0);
-	var oGC = gavCoinAddr;
-	gavCoinAddr = eth.stateAt(configAddr, "2", 0);
-	
-	if (gavCoinAddr != oGC)
+	theNameReg = NameReg(Config().lookup(1));
+	theGavCoin = theNameReg.addressOf('GavCoin');
+
+	if (theGavCoin.address != oGCA)
 	{
 		if (gcTxWatch)
 			gcTxWatch.uninstall();
-		if (web3.toDecimal(gavCoinAddr))
+		if (web3.eth.toDecimal(theGavCoin.address))
 		{
-			gcTxWatch = eth.watch({'max': 15, 'altered': myAddrs.map(function (a) { return { 'id': gavCoinAddr, 'at': a } }) });
+			gcTxWatch = web3.eth.watch({'max': 15, 'address': theGavCoin.address, 'topics': web3.eth.address });
 			gcTxWatch.changed(updateGavCoinTxs);
 			return;	// refresh will be called by the above - no need to repeat.
 		}
 	}
 	
+	var myAddrs = web3.accounts;
 	var cv = checkvalue();
 	var ct = checkto();
-	var blocksToMine = web3.toDecimal(eth.number) - web3.toDecimal(eth.stateAt(gavCoinAddr, "0x42", 0));
+	var blocksToMine = web3.toDecimal(web3.eth.number) - web3.toDecimal(web3.eth.stateAt(gavCoinAddr, "0x42", 0));
 	document.getElementById('mine').className = (blocksToMine ? "valid" : "invalid");
 	document.getElementById('mine').innerHTML = blocksToMine == 1 ? "mine" : "mine " + blocksToMine;
 	document.getElementById('addr').innerHTML = myAddrs[0].substr(2);
 	var confirmedGav = 0;
 	var unconfirmedGav = 0;
-	myAddrs.forEach(function(x) { confirmedGav -=- web3.toDecimal(eth.stateAt(gavCoinAddr, x, -1)); unconfirmedGav -=- web3.toDecimal(eth.stateAt(gavCoinAddr, x, 0)); });
+	myAddrs.forEach(function(x) {
+		web3.eth.setBlock(web3.eth.number);
+		confirmedGav -=- web3.toDecimal(theGavCoin.coinBalanceOf(x));
+		web3.eth.setBlock(0);
+		unconfirmedGav -=- web3.toDecimal(theGavCoin.coinBalanceOf(x));
+	});
 	document.getElementById('gav').innerHTML = (unconfirmedGav > confirmedGav ? confirmedGav / 1000 + '<span id="unc"> (+ <span>' + (unconfirmedGav - confirmedGav) / 1000 + "</span> unconfirmed)</span>" : unconfirmedGav / 1000);
 	var lh = document.getElementById("latest");
 	lh.innerHTML = "";
@@ -367,19 +378,6 @@ updateGavCoinTxs = function() {
 }
 
 eth.watch("chain").changed(refresh);
-
-var Config = web3.contract(addrConfig, abiConfig);
-Config.lookup(2).call().then(function(n){
-	addrGavsino = n[0];
-	Gavsino = web3.contract(addrGavsino, abiGavsino);
-	web3.eth.accounts.then(function(as) { 
-		w = web3.eth.watch({address: addrGavsino});
-		w.changed(function(d) {
-			refreshHoldings();
-			refreshTickets();
-		});
-	});
-});
 
 </script>
 </body>

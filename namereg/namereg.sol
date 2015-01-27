@@ -9,14 +9,13 @@ contract NameRegister {
 	function getName(address _owner) constant returns (string32 o_name) {}
 }
 
-#require Config, owned
-contract NameReg is owned, NameRegister {
+#require service, owned
+contract NameReg is service(1), owned, NameRegister {
 	function NameReg() {
 		toName[Config()] = "Config";
 		toAddress["Config"] = Config();
 		toName[this] = "NameReg";
 		toAddress["NameReg"] = this;
-		Config().register(1, this);
 		log1(0, hash256(Config()));
 		log1(0, hash256(this));
 	}

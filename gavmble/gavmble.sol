@@ -1,9 +1,10 @@
-//sol Gavmble
+//sol Gavsino
+// Simple casino proto-DAO.
+// @authors:
+//   Gav Wood <g@ethdev.com>
 
-contract Config{function register(uint _,address __){}function unregister(uint _){}function lookup(uint _)constant returns(address __){}function kill(){}}
-contract NameReg{function register(string32 _){}function unregister(){}function addressOf(string32 _)constant returns(address __){}function nameOf(address _)constant returns(string32 __){}function kill(){}}
-
-contract Gavsino {
+#require service, named, owned
+contract Gavsino is service(2), named("Gavsino"), owned {
 	struct Order {
 		uint amount;
 		uint pIn256;
@@ -12,11 +13,6 @@ contract Gavsino {
 
 	// Create a Gavmble contract.
 	function Gavsino() {
-		m_owner = msg.sender;
-		address addrConfig = 0x661005d2720d855f1d9976f88bb10c1a3398c77f;
-		Config(addrConfig).register(2, this);
-		address addrNameReg = Config(addrConfig).lookup(1);
-		NameReg(addrNameReg).register("Gavsino");
 		if (msg.value > 0)
 			m_totalShares = msg.value / 1000000000000000;
 		else
@@ -41,7 +37,8 @@ contract Gavsino {
 	function claim(hash bet) {
 		hash key = sha3(bet);
 		if (m_orders[key].amount > 0) {
-			uint w = winningsWithKey(key, bet);
+			uint refund = (m_orders[key].amount * 1 / 200);
+			uint w = winningsWithKey(key, bet) + refund;
 			msg.sender.send(w);
 			m_owing -= m_orders[key].amount;
 			delete m_orders[key];
@@ -59,12 +56,9 @@ contract Gavsino {
 	}
 
 	function winningsWithKey(hash key, hash bet) constant returns(uint r) {	// payout is on 99% of original value. house keeps 0.5%, 0.5% refunded in claim.
-		uint refund = (m_orders[key].amount * 1 / 200);
 		if (block.number <= m_orders[key].number + 255 &&
 			uint(sha3(hash(block.blockhash(m_orders[key].number))) ^ bet) & 0xff < m_orders[key].pIn256)
-		    return ((m_orders[key].amount * 99 / 100) * 256 / m_orders[key].pIn256) + refund;
-		else
-		    return refund;
+		    r = (m_orders[key].amount * 99 / 100) * 256 / m_orders[key].pIn256;
 	}
 
 	function winnings(hash bet) constant returns(uint r) {
@@ -72,7 +66,7 @@ contract Gavsino {
 	}
 
 	function empty() {
-		m_owner.send(address(this).balance);
+		owner.send(address(this).balance);
 	}
 	
 	function buyIn() {
@@ -116,7 +110,6 @@ contract Gavsino {
 		r = m_totalShares;
 	}
 
-	address m_owner;
 	mapping(hash => Order) m_orders;
 	uint m_owing;
 	

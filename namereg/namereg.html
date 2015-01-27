@@ -26,6 +26,38 @@ img {
     </style>
   </head>
   <body>
+  	<script>
+//TODO: this should just be:
+// import("Config");
+// import("Gavsino");
+var Config = web3.eth.contractFromAbi([{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}]);
+var NameReg = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}]);
+var theNameReg;
+var w;
+
+var regName = function()
+{
+	var name = document.getElementById("regname").value;
+	if (name != "")
+			theNameReg.register(name);
+}
+
+var lookupName = function()
+{
+	var a = theNameReg.addressOf(document.getElementById("name").value);
+	document.getElementById("addr").value = +web3.toDecimal(a) ? a.substring(2) : "";
+}
+
+var lookupAddr = function()
+{
+	document.getElementById("name").value = theNameReg.nameOf("0x" + document.getElementById("addr").value);
+}
+
+theNameReg = NameReg(Config().lookup(1));
+w = web3.eth.watch({'address': theNameReg.address, 'topics': web3.eth.accounts[0]});
+
+w.changed(function(d) { document.getElementById("yourname").innerHTML = theNameReg.nameOf(web3.eth.accounts[0]); });
+  	</script>
     <h1>NameReg</h1>
 	<h2>Your Name</h2>
 	<div id="yourname"></div>
@@ -41,7 +73,7 @@ img {
       <label for="name">Name: </label>
       <input id="regname" type="text" value="">
       <button onclick="regName()">Register</button>
-      <button onclick="unregName()">Unregister</button>
+      <button onclick="theNameReg.unregister()">Unregister</button>
     </div>
     <!--h2>Register Domain</h2>
     <div>
@@ -54,39 +86,7 @@ img {
     </div-->
 
    <script>
-var abiConfig = [{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}];
-var abiNameReg = [{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}];
-var addrConfig = "0xc6d9d2cd449a754c494264e1809c50e34d64562b";
-var addrNameReg;
-var NameReg;
-var w;
-
-regName = function()
-{
-	var name = document.getElementById("regname").value;
-	if (name != "")
-			NameReg.register(name);
-}
-unregName = function()
-{
-	NameReg.unregister();
-}
-lookupName = function()
-{
-	var a = NameReg.addressOf(document.getElementById("name").value);
-	document.getElementById("addr").value = +web3.toDecimal(a) ? a.substring(2) : "";
-}
-lookupAddr = function()
-{
-	document.getElementById("name").value = NameReg.nameOf("0x" + document.getElementById("addr").value);
-}
-addrNameReg = web3.eth.contract(addrConfig, abiConfig).lookup(1);
-NameReg = web3.eth.contract(addrNameReg, abiNameReg);
-w = web3.eth.watch({address: addrNameReg, topics: web3.eth.accounts[0]});
-w.changed(function(d) {
-	document.getElementById("yourname").innerHTML = NameReg.nameOf(web3.eth.accounts[0]);
-});
-document.getElementById("yourname").innerHTML = NameReg.nameOf(web3.eth.accounts[0]);
+document.getElementById("yourname").innerHTML = theNameReg.nameOf(web3.eth.accounts[0]);
     </script>
     <span id="test"></span>
   </body>
