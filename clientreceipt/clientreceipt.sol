@@ -26,12 +26,13 @@ contract lockedbox is owned {
 }
 
 contract ClientReceipt is owned, lockedbox {
+  event AnonymousDeposit(address indexed _from, uint _value);
   event Deposit(address indexed _from, hash _id, uint _value);
   event Refill(address indexed _from, uint _value);
   event Drain(address indexed _from, address indexed _to, uint _value);
   
   function() {
-	Deposit(msg.sender, 0, msg.value)
+	AnonymousDeposit(msg.sender, msg.value)
   }
   function deposit(hash _id) {
 	Deposit(msg.sender, _id, msg.value)
