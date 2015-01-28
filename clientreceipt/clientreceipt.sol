@@ -1,12 +1,16 @@
 #require owned
 contract lockedbox is owned {
+  event NomineesChanged(address keyholder, address executive);
+  event BoxOpened();
   function nominate(address _keyholder, address _executive) {
 	keyholder = _keyholder;
 	executive = _executive;
+	NomineesChanged(keyholder, executive);
   }
   function open() {
 	if (msg.sender == keyholder) {
 	  openSince = block.number;
+	  BoxOpened();
 	}
   }
   modifier restricted {
