@@ -2,8 +2,10 @@
 // Simple global configuration registrar.
 // @authors:
 //   Gav Wood <g@ethdev.com>
-#require owned, mortal
-contract Config is mortal, owned {
+//#require owned, mortal
+import "owned";
+import "mortal";
+contract Config is owned, mortal {
 	function register(uint id, address service) {
 		if (tx.origin != owner)
 			return;
