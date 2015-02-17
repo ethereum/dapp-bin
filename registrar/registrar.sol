@@ -20,7 +20,7 @@ contract Register is NameRegister {
 
 #require named
 
-contract Registrar is Register, named("Registrar2") {
+contract Registrar is Register, named("Registrar") {
 	struct Record {
 		address owner;
 		address primary;
@@ -28,6 +28,8 @@ contract Registrar is Register, named("Registrar2") {
 		hash content;
 		string32 distributor;		// e.g. "pastebin.com/sajd344/raw"
 	}
+
+	event Changed(string32 indexed name);
 
 	function Registrar() {
 		// TODO: Populate with hall-of-fame.
@@ -37,14 +39,14 @@ contract Registrar is Register, named("Registrar2") {
 		// Don't allow the same name to be overwritten.
 		if (m_toRecord[_name].owner == 0) {
 			m_toRecord[_name].primary = msg.sender;
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 
 	function transfer(string32 _name, address _newOwner) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].owner = _newOwner;
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 
@@ -53,7 +55,7 @@ contract Registrar is Register, named("Registrar2") {
 			if (m_toName[m_toRecord[_name].primary] == _name)
 				m_toName[m_toRecord[_name].primary] = "";
 			delete m_toRecord[_name];
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 
@@ -62,25 +64,25 @@ contract Registrar is Register, named("Registrar2") {
 			m_toRecord[_name].primary = _a;
 			if (_primary)
 				m_toName[_a] = _name;
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 	function setRegister(string32 _name, Register _registrar) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].registrar = _registrar;
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 	function setContent(string32 _name, hash _content) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].content = _content;
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 	function setDistributor(string32 _name, string32 _distributor) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].distributor = _distributor;
-			// TODO: Log
+			Changed(_name);
 		}
 	}
 	
