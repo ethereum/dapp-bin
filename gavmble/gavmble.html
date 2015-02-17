@@ -1,7 +1,6 @@
 <!doctype>
 <html>
 <head>
-<title>Gavsino - The Ubiquitous Casino</title>
 <script>
 //var web3 = require('web3');
 //web3.setProvider(new web3.providers.AutoProvider());
@@ -114,19 +113,19 @@ w.changed(function(d) {
 <title>Gavsino - The Ubiquitous Casino</title>
 </head>
 <body>
-<h1>Gavsino - The Ubiquitous Casino</h2>
+<h1>Gavsino - The Ubiquitous Casino</h1>
 <div>
 <div style="float: right; background: #fee; width: 15em; height: 30em">
-<h3>Bets</h3>
+<h2>Bets</h2>
 <div id="bets">
 </div>
 </div>
 <div style="">
-<h3>Shares</h3>
+<h2>Shares</h2>
 <div>Shares held: <span id="myshares"></span> shares (worth <span id="mysharesvalue"></span>) of <span id="totalshares"></span> (worth <span id="equity"></span>).</div>
 <div>Amount: <input id="sharesamount" value="1"></input> finney = <span id="sharesofvalue"></span> shares.</div>
 <div><button id="buyIn" onClick="buyIn(document.getElementById('sharesamount').value)">buy in</button><button id="cashOut" onClick="cashOut(document.getElementById('sharesofvalue').innerHTML)">cash out</button></div>
-<h3>Bet</h3>
+<h2>Bet</h2>
 <div>Amount: <input id="amount" value="1"></input> finney</div>
 <div>Probability: <input id="pIn256" value="128"></input> / 256</div>
 <div><button id="bet" onClick="newTicket(document.getElementById('amount').value, document.getElementById('pIn256').value)">bet</button></div>
