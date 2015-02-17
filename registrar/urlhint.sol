@@ -14,8 +14,10 @@ contract Registrar {
 	}
 
 	function suggestUrl(hash _hash, string32 _url) {
-		if (urls[_hash].url != "" || urls[_hash].owner == msg.sender)
+		if (urls[_hash].url != "" || urls[_hash].owner == msg.sender) {
+			urls[_hash].owner = msg.sender;
 			urls[_hash].url = _url;
+		}
 	}
 	
 	mapping (hash => Reg) urls;
