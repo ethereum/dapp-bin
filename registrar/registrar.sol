@@ -9,22 +9,24 @@ contract NameRegister {
 }
 
 contract Register is NameRegister {
-	function getOwner(string32 _name) constant returns (address o_owner) {}
-	function getAddress(string32 _name) constant returns (address o_address) {}
-	function getRegister(string32 _name) constant returns (Register o_register) {}
-	function getContent(string32 _name) constant returns (hash o_content) {}
+	function owner(string32 _name) constant returns (address o_owner) {}
+	function addr(string32 _name) constant returns (address o_address) {}
+	function register(string32 _name) constant returns (Register o_register) {}
+	function content(string32 _name) constant returns (hash o_content) {}
+	function distributor(string32 _name) constant returns (string32 o_distributor) {}
 	
-	function getName(address _owner) constant returns (string32 o_name) {}
+	function name(address _owner) constant returns (string32 o_name) {}
 }
 
 #require named
 
-contract Registrar is Register, named("Registrar") {
+contract Registrar is Register, named("Registrar2") {
 	struct Record {
 		address owner;
 		address primary;
 		Register registrar;
 		hash content;
+		string32 distributor;		// e.g. "pastebin.com/sajd344/raw"
 	}
 
 	function Registrar() {
@@ -75,20 +77,28 @@ contract Registrar is Register, named("Registrar") {
 			// TODO: Log
 		}
 	}
+	function setDistributor(string32 _name, string32 _distributor) {
+		if (m_toRecord[_name].owner == msg.sender) {
+			m_toRecord[_name].distributor = _distributor;
+			// TODO: Log
+		}
+	}
 	
 	// TODO....
-	function getRecord(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content) {
+	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content, string32 o_distributor) {
 		o_owner = m_toRecord[_name].owner;
 		o_primary = m_toRecord[_name].primary;
 		o_registrar = m_toRecord[_name].registrar;
 		o_content = m_toRecord[_name].content;
+		o_distributor = m_toRecord[_name].distributor;
 	}
-	function getOwner(string32 _name) constant returns (address o_owner) { o_owner = m_toRecord[_name].owner; }
-	function getAddress(string32 _name) constant returns (address o_bene) { o_bene = m_toRecord[_name].primary; }
-	function getRegister(string32 _name) constant returns (Register o_registrar) { o_registrar = m_toRecord[_name].registrar; }
-	function getContent(string32 _name) constant returns (hash o_content) { o_content = m_toRecord[_name].content; }
+	function owner(string32 _name) constant returns (address) { return m_toRecord[_name].owner; }
+	function addr(string32 _name) constant returns (address) { return m_toRecord[_name].primary; }
+	function register(string32 _name) constant returns (Register) { return m_toRecord[_name].registrar; }
+	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
+	function distributor(string32 _name) constant returns (string32) { return m_toRecord[_name].distributor; }
 	
-	function getName(address _owner) constant returns (string32 o_name) { o_name = m_toName[_owner]; }
+	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
 	
 /*	event MoreLog {
 		index uint l;

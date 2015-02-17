@@ -102,8 +102,8 @@ contract Gavsino is service(2), named("Gavsino"), owned {
 		r = equity() * s / m_totalShares;
 	}
 	
-	function sharesValue(uint wei) constant returns(uint shares) {
-		shares = wei * m_totalShares / equity();
+	function sharesValue(uint v) constant returns(uint shares) {
+		shares = v * m_totalShares / equity();
 	}
 	
 	function totalShares() constant returns(uint r) {

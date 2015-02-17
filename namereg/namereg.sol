@@ -1,7 +1,6 @@
 //sol NameReg
 // Simple global name registrar.
 // @authors:
-//   kobigurk (from #ethereum-dev)
 //   Gav Wood <g@ethdev.com>
 
 contract NameRegister {
@@ -11,13 +10,16 @@ contract NameRegister {
 
 #require service, owned
 contract NameReg is service(1), owned, NameRegister {
+  	event AddressRegistered(address indexed account);
+  	event AddressDeregistered(address indexed account);
+
 	function NameReg() {
 		toName[Config()] = "Config";
 		toAddress["Config"] = Config();
 		toName[this] = "NameReg";
 		toAddress["NameReg"] = this;
-		log1(0, hash256(Config()));
-		log1(0, hash256(this));
+		AddressRegistered(Config());
+		AddressRegistered(this);
 	}
 
 	function register(string32 name) {
@@ -30,14 +32,14 @@ contract NameReg is service(1), owned, NameRegister {
 			
 		toName[msg.sender] = name;
 		toAddress[name] = msg.sender;
-		log1(0, hash256(msg.sender));
+		AddressRegistered(msg.sender);
 	}
 
 	function unregister() {
 		string32 n = toName[msg.sender];
 		if (n == "")
 			return;
-		log1(0, hash256(toAddress[n]));
+		AddressDeregistered(toAddress[n]);
 		toName[msg.sender] = "";
 		toAddress[n] = address(0);
 	}
@@ -64,7 +66,7 @@ contract NameReg{function kill(){}function register(string32 name){}function add
 NameReg(addrNameReg).register("Some Contract");
 
 // JS Interface:
-var abiNameReg = [{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}]},{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}]},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[]},{"constant":false,"inputs":[],"name":"unregister","outputs":[]}];
+var NameReg = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"getName","outputs":[{"name":"o_name","type":"string32"}],"type":"function"},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getAddress","outputs":[{"name":"o_owner","type":"address"}],"type":"function"},{"constant":false,"inputs":[],"name":"unregister","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}],"type":"function"},{"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"AddressRegistered","type":"event"},{"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"AddressDeregistered","type":"event"}]);
 
 // Example JS use:
 web3.eth.contract(addrNameReg, abiNameReg).register("My Name").transact();

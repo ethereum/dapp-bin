@@ -177,7 +177,7 @@ contract daylimit is multiowned {
 // interface contract for multisig proxy contracts.
 contract multisig {
 	function changeOwner(address _from, address _to) external;
-	function execute(address _to, uint _value, byte[] _data) external returns (hash _r);
+	function execute(address _to, uint _value, string _data) external returns (hash _r);
 	function confirm(hash _h) external;
 }
 
@@ -194,7 +194,7 @@ contract Wallet is multisig multiowned daylimit {
 	
 	// logged events:
 	// Funds has arrived into the wallet (record how much).
-	event CashIn(uint value);
+	event CashIn(address indexed from, uint value);
 	// Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
 	event SingleTransact(string32 indexed out = "out", address owner, uint value, address to);
 	// Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
@@ -212,7 +212,7 @@ contract Wallet is multisig multiowned daylimit {
 	function() {
 		// just being sent some cash?
 		if (msg.value) {
-			CashIn(msg.value);
+			CashIn(msg.from, msg.value);
 		}
 	}
 
