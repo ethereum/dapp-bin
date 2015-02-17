@@ -13,7 +13,6 @@ contract Register is NameRegister {
 	function addr(string32 _name) constant returns (address o_address) {}
 	function register(string32 _name) constant returns (Register o_register) {}
 	function content(string32 _name) constant returns (hash o_content) {}
-	function distributor(string32 _name) constant returns (string32 o_distributor) {}
 	
 	function name(address _owner) constant returns (string32 o_name) {}
 }
@@ -26,7 +25,6 @@ contract Registrar is Register, named("Registrar") {
 		address primary;
 		Register registrar;
 		hash content;
-		string32 distributor;		// e.g. "pastebin.com/sajd344/raw"
 	}
 
 	event Changed(string32 indexed name);
@@ -79,12 +77,6 @@ contract Registrar is Register, named("Registrar") {
 			Changed(_name);
 		}
 	}
-	function setDistributor(string32 _name, string32 _distributor) {
-		if (m_toRecord[_name].owner == msg.sender) {
-			m_toRecord[_name].distributor = _distributor;
-			Changed(_name);
-		}
-	}
 	
 	// TODO....
 	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content, string32 o_distributor) {
@@ -92,13 +84,11 @@ contract Registrar is Register, named("Registrar") {
 		o_primary = m_toRecord[_name].primary;
 		o_registrar = m_toRecord[_name].registrar;
 		o_content = m_toRecord[_name].content;
-		o_distributor = m_toRecord[_name].distributor;
 	}
 	function owner(string32 _name) constant returns (address) { return m_toRecord[_name].owner; }
 	function addr(string32 _name) constant returns (address) { return m_toRecord[_name].primary; }
 	function register(string32 _name) constant returns (Register) { return m_toRecord[_name].registrar; }
 	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
-	function distributor(string32 _name) constant returns (string32) { return m_toRecord[_name].distributor; }
 	
 	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
 	
@@ -113,10 +103,3 @@ contract Registrar is Register, named("Registrar") {
 	mapping (string32 => Record) m_toRecord;
 }
 
-/*
-
-[{"constant":false,"inputs":[{"name":"_name","type":"string32"}],"name":"reserve","outputs":[]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getRecord","outputs":[{"name":"o_owner","type":"address"},{"name":"o_primary","type":"address"},{"name":"o_registrar","type":"contractRegister"},{"name":"o_content","type":"hash256"}]},{"constant":false,"inputs":[{"name":"_name","type":"string32"},{"name":"_content","type":"hash256"}],"name":"setContent","outputs":[]},{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"getName","outputs":[{"name":"o_name","type":"string32"}]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getBeneficiary","outputs":[{"name":"o_owner","type":"address"}]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getRegister","outputs":[{"name":"o_registrar","type":"contractRegister"}]},{"constant":false,"inputs":[{"name":"_name","type":"string32"},{"name":"_registrar","type":"contractRegister"}],"name":"setRegister","outputs":[]},{"constant":false,"inputs":[{"name":"_name","type":"string32"},{"name":"_a","type":"address"},{"name":"_primary","type":"bool"}],"name":"setBeneficiary","outputs":[]},{"constant":false,"inputs":[{"name":"_name","type":"string32"},{"name":"_newOwner","type":"address"}],"name":"transfer","outputs":[]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getContent","outputs":[{"name":"o_content","type":"hash256"}]},{"constant":false,"inputs":[{"name":"_name","type":"string32"}],"name":"unregister","outputs":[]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getAddress","outputs":[{"name":"o_bene","type":"address"}]},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getOwner","outputs":[{"name":"o_owner","type":"address"}]}]
-
-contract Registrar{function reserve(string32 _name){}function getRecord(string32 _name)constant returns(address o_owner,address o_primary,contract Register o_registrar,hash256 o_content){}function setContent(string32 _name,hash256 _content){}function getName(address _owner)constant returns(string32 o_name){}function getBeneficiary(string32 _name)constant returns(address o_owner){}function getRegister(string32 _name)constant returns(contract Register o_registrar){}function setRegister(string32 _name,contract Register _registrar){}function setBeneficiary(string32 _name,address _a,bool _primary){}function transfer(string32 _name,address _newOwner){}function getContent(string32 _name)constant returns(hash256 o_content){}function unregister(string32 _name){}function getAddress(string32 _name)constant returns(address o_bene){}function getOwner(string32 _name)constant returns(address o_owner){}}
-
-*/
