@@ -9,6 +9,9 @@ contract NameRegister {
 }
 
 contract Register is NameRegister {
+	event Changed(string32 indexed name);
+	event PrimaryChanged(string32 indexed name, address indexed addr);
+
 	function owner(string32 _name) constant returns (address o_owner) {}
 	function addr(string32 _name) constant returns (address o_address) {}
 	function register(string32 _name) constant returns (Register o_register) {}
@@ -35,6 +38,7 @@ contract Registrar is Register, named("Registrar") {
 
 	function reserve(string32 _name) {
 		// Don't allow the same name to be overwritten.
+		// TODO: bidding mechanism
 		if (m_toRecord[_name].owner == 0) {
 			m_toRecord[_name].primary = msg.sender;
 			Changed(_name);
@@ -51,7 +55,10 @@ contract Registrar is Register, named("Registrar") {
 	function unregister(string32 _name) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			if (m_toName[m_toRecord[_name].primary] == _name)
+			{
+				PrimaryChanged(_name, m_toRecord[_name].primary);
 				m_toName[m_toRecord[_name].primary] = "";
+			}
 			delete m_toRecord[_name];
 			Changed(_name);
 		}
@@ -61,7 +68,10 @@ contract Registrar is Register, named("Registrar") {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].primary = _a;
 			if (_primary)
+			{
+				PrimaryChanged(_name, _a);
 				m_toName[_a] = _name;
+			}
 			Changed(_name);
 		}
 	}
@@ -79,7 +89,7 @@ contract Registrar is Register, named("Registrar") {
 	}
 	
 	// TODO....
-	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content, string32 o_distributor) {
+	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content) {
 		o_owner = m_toRecord[_name].owner;
 		o_primary = m_toRecord[_name].primary;
 		o_registrar = m_toRecord[_name].registrar;
@@ -99,6 +109,66 @@ contract Registrar is Register, named("Registrar") {
 		uint z;
 	}*/
 	
+	mapping (address => string32) m_toName;
+	mapping (string32 => Record) m_toRecord;
+}
+
+
+contract OwnedRegistrar is Register, owned {
+	struct Record {
+		address owner;
+		address primary;
+		Register registrar;
+		hash content;
+	}
+	
+	function unregister(string32 _name) onlyowner {
+		if (m_toName[m_toRecord[_name].primary] == _name)
+		{
+			PrimaryChanged(_name, m_toRecord[_name].primary);
+			m_toName[m_toRecord[_name].primary] = "";
+		}
+		delete m_toRecord[_name];
+		Changed(_name);
+	}
+
+	function setAddress(string32 _name, address _a, bool _primary) onlyowner {
+		if (m_toRecord[_name].owner == msg.sender) {
+			m_toRecord[_name].primary = _a;
+			if (_primary)
+			{
+				PrimaryChanged(_name, _a);
+				m_toName[_a] = _name;
+			}
+			Changed(_name);
+		}
+	}
+	function setRegister(string32 _name, Register _registrar) onlyowner {
+		if (m_toRecord[_name].owner == msg.sender) {
+			m_toRecord[_name].registrar = _registrar;
+			Changed(_name);
+		}
+	}
+	function setContent(string32 _name, hash _content) onlyowner {
+		if (m_toRecord[_name].owner == msg.sender) {
+			m_toRecord[_name].content = _content;
+			Changed(_name);
+		}
+	}
+	
+	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content) {
+		o_owner = m_toRecord[_name].owner;
+		o_primary = m_toRecord[_name].primary;
+		o_registrar = m_toRecord[_name].registrar;
+		o_content = m_toRecord[_name].content;
+	}
+	function owner(string32 _name) constant returns (address) { return m_toRecord[_name].owner; }
+	function addr(string32 _name) constant returns (address) { return m_toRecord[_name].primary; }
+	function register(string32 _name) constant returns (Register) { return m_toRecord[_name].registrar; }
+	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
+	
+	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
+
 	mapping (address => string32) m_toName;
 	mapping (string32 => Record) m_toRecord;
 }

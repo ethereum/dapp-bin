@@ -194,7 +194,10 @@ contract Wallet is multisig, multiowned, daylimit {
     // Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
     event MultiTransact(address owner, hash operation, uint value, address to, bytes data);*/
     // constructor - just pass on the owner arra to the multiowned.
-    function Wallet() {}
+    event Created();
+    function Wallet() {
+    	Created();
+    }
     // kills the contract sending everything to `_to`.
     function kill(address _to) onlymanyowners(sha3(msg.data)) {
         suicide(_to);
