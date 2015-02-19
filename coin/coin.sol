@@ -5,6 +5,16 @@
 
 #require named, owned, coin, Coin
 
+contract Coin {
+	function sendCoinFrom(address _from, uint _val, address _to) {}
+	function sendCoin(uint _val, address _to) {}
+	function coinBalance() constant returns (uint _r) {}
+	function coinBalanceOf(address _a) constant returns (uint _r) {}
+	function approve(address _a) {}
+	function isApproved(address _proxy) constant returns (bool _r) {}
+	function isApprovedFor(address _target, address _proxy) constant returns (bool _r) {}
+}
+
 contract GavCoin is Coin, named("GavCoin"), coin("GAV", 1000), owned {
 	function GavCoin() {
 		m_balances[owner] = 1000000000;
