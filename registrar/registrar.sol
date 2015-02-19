@@ -40,7 +40,7 @@ contract Registrar is Register, named("Registrar") {
 		// Don't allow the same name to be overwritten.
 		// TODO: bidding mechanism
 		if (m_toRecord[_name].owner == 0) {
-			m_toRecord[_name].primary = msg.sender;
+			m_toRecord[_name].owner = msg.sender;
 			Changed(_name);
 		}
 	}
