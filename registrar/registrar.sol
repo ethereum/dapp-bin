@@ -114,13 +114,7 @@ contract Registrar is Register, named("Registrar") {
 }
 
 
-contract OwnedRegistrar is Register, owned {
-	struct Record {
-		address owner;
-		address primary;
-		Register registrar;
-		hash content;
-	}
+contract OwnedRegistrar is Registrar, owned {
 	
 	function unregister(string32 _name) onlyowner {
 		if (m_toName[m_toRecord[_name].primary] == _name)
@@ -155,21 +149,5 @@ contract OwnedRegistrar is Register, owned {
 			Changed(_name);
 		}
 	}
-	
-	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content) {
-		o_owner = m_toRecord[_name].owner;
-		o_primary = m_toRecord[_name].primary;
-		o_registrar = m_toRecord[_name].registrar;
-		o_content = m_toRecord[_name].content;
-	}
-	function owner(string32 _name) constant returns (address) { return m_toRecord[_name].owner; }
-	function addr(string32 _name) constant returns (address) { return m_toRecord[_name].primary; }
-	function register(string32 _name) constant returns (Register) { return m_toRecord[_name].registrar; }
-	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
-	
-	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
-
-	mapping (address => string32) m_toName;
-	mapping (string32 => Record) m_toRecord;
 }
 
