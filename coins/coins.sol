@@ -4,6 +4,7 @@
 //   Gav Wood <g@ethdev.com>
 
 #require service, named
+
 contract CoinReg is service(3), named("CoinReg") {
 	struct CoinInfo {
 		address addr;
@@ -44,3 +45,11 @@ contract CoinReg is service(3), named("CoinReg") {
 	uint m_count;
 	mapping (uint => CoinInfo) m_coins;
 }
+
+contract coin {
+	function coin(string3 name, uint denom) {
+		// TODO: register with CoinReg.
+	}
+}
+
+

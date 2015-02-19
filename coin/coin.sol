@@ -3,7 +3,7 @@
 // @authors:
 //   Gav Wood <g@ethdev.com>
 
-#require named, owned, coin, Coin
+#require named, owned, coin
 
 contract Coin {
 	function sendCoinFrom(address _from, uint _val, address _to) {}
