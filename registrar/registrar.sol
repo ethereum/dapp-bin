@@ -14,7 +14,7 @@ contract Register is NameRegister {
 
 	function owner(string32 _name) constant returns (address o_owner) {}
 	function addr(string32 _name) constant returns (address o_address) {}
-	function register(string32 _name) constant returns (Register o_register) {}
+	function register(string32 _name) constant returns (address o_register) {}
 	function content(string32 _name) constant returns (hash o_content) {}
 	
 	function name(address _owner) constant returns (string32 o_name) {}
@@ -26,7 +26,7 @@ contract Registrar is Register, named("Registrar") {
 	struct Record {
 		address owner;
 		address primary;
-		Register registrar;
+		address registrar;
 		hash content;
 	}
 
@@ -75,7 +75,7 @@ contract Registrar is Register, named("Registrar") {
 			Changed(_name);
 		}
 	}
-	function setRegister(string32 _name, Register _registrar) {
+	function setRegister(string32 _name, address _registrar) {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].registrar = _registrar;
 			Changed(_name);
@@ -89,7 +89,7 @@ contract Registrar is Register, named("Registrar") {
 	}
 	
 	// TODO....
-	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content) {
+	function record(string32 _name) constant returns (address o_owner, address o_primary, address o_registrar, hash o_content) {
 		o_owner = m_toRecord[_name].owner;
 		o_primary = m_toRecord[_name].primary;
 		o_registrar = m_toRecord[_name].registrar;
@@ -97,7 +97,7 @@ contract Registrar is Register, named("Registrar") {
 	}
 	function owner(string32 _name) constant returns (address) { return m_toRecord[_name].owner; }
 	function addr(string32 _name) constant returns (address) { return m_toRecord[_name].primary; }
-	function register(string32 _name) constant returns (Register) { return m_toRecord[_name].registrar; }
+	function register(string32 _name) constant returns (address) { return m_toRecord[_name].registrar; }
 	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
 	
 	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
@@ -118,7 +118,7 @@ contract OwnedRegistrar is Register, owned {
 	struct Record {
 		address owner;
 		address primary;
-		Register registrar;
+		address registrar;
 		hash content;
 	}
 	
@@ -143,7 +143,7 @@ contract OwnedRegistrar is Register, owned {
 			Changed(_name);
 		}
 	}
-	function setRegister(string32 _name, Register _registrar) onlyowner {
+	function setRegister(string32 _name, address _registrar) onlyowner {
 		if (m_toRecord[_name].owner == msg.sender) {
 			m_toRecord[_name].registrar = _registrar;
 			Changed(_name);
@@ -156,7 +156,7 @@ contract OwnedRegistrar is Register, owned {
 		}
 	}
 	
-	function record(string32 _name) constant returns (address o_owner, address o_primary, Register o_registrar, hash o_content) {
+	function record(string32 _name) constant returns (address o_owner, address o_primary, address o_registrar, hash o_content) {
 		o_owner = m_toRecord[_name].owner;
 		o_primary = m_toRecord[_name].primary;
 		o_registrar = m_toRecord[_name].registrar;
@@ -164,7 +164,7 @@ contract OwnedRegistrar is Register, owned {
 	}
 	function owner(string32 _name) constant returns (address) { return m_toRecord[_name].owner; }
 	function addr(string32 _name) constant returns (address) { return m_toRecord[_name].primary; }
-	function register(string32 _name) constant returns (Register) { return m_toRecord[_name].registrar; }
+	function register(string32 _name) constant returns (address) { return m_toRecord[_name].registrar; }
 	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
 	
 	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
