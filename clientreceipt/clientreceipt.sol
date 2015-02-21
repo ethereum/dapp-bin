@@ -33,26 +33,25 @@ contract killswitch is owned {
   event NomineesChanged(address keyholder, address executive);
   event BoxOpened();
   event BoxClosed();
-  function nominate(address _keyholder, address _executive) {
+  function nominate(address _keyholder, address _executive) onlyowner {
 	keyholder = _keyholder;
 	executive = _executive;
 	NomineesChanged(keyholder, executive);
   }
   function open() {
-	if (msg.sender == keyholder) {
+	if (msg.sender == owner || msg.sender == keyholder) {
 	  open = true;
 	  BoxOpened();
 	}
   }
   function close() {
-	if (msg.sender == keyholder) {
+	if (msg.sender == owner || msg.sender == keyholder) {
 	  open = false;
 	  BoxClosed();
 	}
   }
   modifier restricted {
-	// open for 256 blocks.
-	if (msg.sender == owner || open) {
+	if (msg.sender == owner || (open && msg.sender == executive)) {
 	  _
 	}
   }
@@ -82,4 +81,3 @@ contract ClientReceipt is owned, killswitch {
 	_to.send(_value, _data);
   }
 }
-
