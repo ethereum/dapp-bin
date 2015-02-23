@@ -150,7 +150,6 @@ contract OwnedRegistrar is Register, owned {
 		m_toRecord[_name].content = _content;
 		Changed(_name);
 	}
-
 	function record(string32 _name) constant returns (address o_primary, address o_registrar, hash o_content) {
 		o_primary = m_toRecord[_name].primary;
 		o_registrar = m_toRecord[_name].registrar;
