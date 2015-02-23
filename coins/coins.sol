@@ -46,10 +46,4 @@ contract CoinReg is service(3), named("CoinReg") {
 	mapping (uint => CoinInfo) m_coins;
 }
 
-contract coin {
-	function coin(string3 name, uint denom) {
-		// TODO: register with CoinReg.
-	}
-}
-
 
