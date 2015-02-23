@@ -79,6 +79,6 @@ contract ClientReceipt is owned, killswitch {
   }
   function transfer(address _to, uint _value, bytes _data) restricted {
 	Transfer(msg.sender, _to, _value);
-	_to.value(_value).call(_data);
+	_to.call.value(_value)(_data);
   }
 }
