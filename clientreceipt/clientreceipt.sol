@@ -1,4 +1,4 @@
-#require owned
+import "owned";
 contract lockedbox is owned {
   event NomineesChanged(address keyholder, address executive);
   event BoxOpened();
@@ -38,25 +38,26 @@ contract killswitch is owned {
 	executive = _executive;
 	NomineesChanged(keyholder, executive);
   }
+	
   function open() {
 	if (msg.sender == owner || msg.sender == keyholder) {
-	  open = true;
+	  isOpen = true;
 	  BoxOpened();
 	}
   }
   function close() {
 	if (msg.sender == owner || msg.sender == keyholder) {
-	  open = false;
+	  isOpen = false;
 	  BoxClosed();
 	}
   }
   modifier restricted {
-	if (msg.sender == owner || (open && msg.sender == executive)) {
+	if (msg.sender == owner || (isOpen && msg.sender == executive)) {
 	  _
 	}
   }
 							
-  bool open;
+  bool isOpen;
   address keyholder;
   address executive;
 }
@@ -68,16 +69,16 @@ contract ClientReceipt is owned, killswitch {
   event Transfer(address indexed _from, address indexed _to, uint _value);
   
   function() {
-	AnonymousDeposit(msg.sender, msg.value)
+	AnonymousDeposit(msg.sender, msg.value);
   }
   function deposit(hash _id) {
-	Deposit(msg.sender, _id, msg.value)
+	Deposit(msg.sender, _id, msg.value);
   }
   function refill() {
-	Refill(msg.sender, msg.value)
+	Refill(msg.sender, msg.value);
   }
-  function transfer(address _to, uint _value, byte[] _data) restricted {
+  function transfer(address _to, uint _value, bytes _data) restricted {
 	Transfer(msg.sender, _to, _value);
-	_to.send(_value, _data);
+	_to.value(_value).call(_data);
   }
 }
