@@ -30,6 +30,8 @@ contract Registrar is Register, named("Registrar") {
 		address primary;
 		address registrar;
 		hash content;
+		uint value;
+		uint renewalDate;
 	}
 
 	event Changed(string32 indexed name);
@@ -103,6 +105,21 @@ contract Registrar is Register, named("Registrar") {
 	function content(string32 _name) constant returns (hash) { return m_toRecord[_name].content; }
 
 	function name(address _owner) constant returns (string32 o_name) { return m_toName[_owner]; }
+
+	/*
+	TODO
+	> 12 chars: free
+	<= 12 chars: auction:
+	1. new names are auctioned
+	- 7 day period to collect all bid hashes + deposits
+	- 1 day period to collect all bids to be considered (validity requires associated deposit to be >10% of bid)
+	- all valid bids are burnt except highest - difference between that and second highest is returned to winner
+	2. remember when last auctioned/renewed
+	3. anyone can force renewal process:
+	- 7 day period to collect all bid hashes + deposits
+	- 1 day period to collect all bids & full amounts - bids only uncovered if sufficiently high.
+	- 1% of winner burnt; original owner paid rest.
+	*/
 
 /*	event MoreLog {
 		index uint l;
