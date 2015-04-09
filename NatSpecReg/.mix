@@ -76,6 +76,23 @@
 						"unit": 18,
 						"value": "0"
 					}
+				},
+				{
+					"contractId": "NatSpecReg",
+					"functionId": "NatSpecReg",
+					"gas": {
+						"value": "250000"
+					},
+					"gasPrice": {
+						"unit": 18,
+						"value": "100000"
+					},
+					"parameters": {},
+					"stdContract": false,
+					"value": {
+						"unit": 18,
+						"value": "0"
+					}
 				}
 			]
 		}
