@@ -63,7 +63,7 @@ contract multiowned {
         if (pending.ownersDone & ownerIndexBit == 0) {
             Confirmation(msg.sender, _operation);
             // ok - check if count is enough to go ahead.
-            if (pending.yetNeeded == 1) {
+            if (pending.yetNeeded <= 1) {
                 // enough confirmations: reset and run interior.
                 delete m_pending[_operation];
                 return true;
@@ -178,7 +178,7 @@ contract daylimit is multiowned {
             _
     }
     // determines today's index.
-    function today() private constant returns (uint) { return block.timestamp / (60 * 60 * 24); }
+    function today() private constant returns (uint) { return now / 1 days; }
     uint m_spentToday;
     uint m_dailyLimit;
     uint m_lastDay;
@@ -217,7 +217,7 @@ contract Wallet is multisig, multiowned, daylimit {
         Created();
     }
     // kills the contract sending everything to `_to`.
-    function kill(address _to) onlymanyowners(sha3(msg.data)) {
+    function kill(address _to) onlymanyowners(sha3(msg.data)) external {
         suicide(_to);
     }
     // gets called when no other function matches
