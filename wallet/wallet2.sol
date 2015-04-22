@@ -16,7 +16,7 @@ contract multiowned {
     }
     // this contract only has five types of events: it can accept a confirmation, in which case
     // we record owner and operation (hash) alongside it.
-    event Confirmation(address owner, hash operation);
+    event Confirmation(address owner, bytes32 operation);
     // some others are in the case of an owner changing.
     event OwnerChanged(address oldOwner, address newOwner);
     event OwnerAdded(address newOwner);
@@ -39,11 +39,11 @@ contract multiowned {
     // multi-sig function modifier: the operation must have an intrinsic hash in order
     // that later attempts can be realised as the same underlying operation and
     // thus count as confirmations.
-    modifier onlymanyowners(hash _operation) {
+    modifier onlymanyowners(bytes32 _operation) {
         if (confirmed(_operation))
             _
     }
-    function confirmed(hash _operation) protected returns (bool) {
+    function confirmed(bytes32 _operation) internal returns (bool) {
         // determine what index the present sender is:
         uint ownerIndex = m_ownerIndex[msg.sender];
         // make sure they're an owner
@@ -120,7 +120,7 @@ contract multiowned {
     // index on the list of owners to allow reverse lookup
     mapping(address => uint) m_ownerIndex;
     // the ongoing operations.
-    mapping(hash => PendingState) m_pending;
+    mapping(bytes32 => PendingState) m_pending;
 }
 
 // inheritable "property" contract that enables methods to be protected by placing a linear limit (specifiable)
@@ -141,7 +141,7 @@ contract daylimit is multiowned {
     }
     // checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
     // returns true. otherwise just returns false.
-    function underLimit(uint _value) protected onlyowner returns (bool) {
+    function underLimit(uint _value) internal onlyowner returns (bool) {
         // reset the spend limit if we're on a different day to last time.
         if (today() > m_lastDay) {
             m_spentToday = 0;
@@ -169,14 +169,14 @@ contract daylimit is multiowned {
 contract multisig {
     event Deposit(address from, uint value);
     event SingleTransact(address owner, uint value, address to, bytes data);
-    event MultiTransact(address owner, hash operation, uint value, address to, bytes data);
-    event ConfirmationNeeded(hash operation, address initiator, uint value, address to, bytes data);
-    function changeOwner(address _from, address _to) {}
-    function execute(address _to, uint _value, bytes _data) returns (hash) {}
-    function confirm(hash _h) returns (bool) {}
+    event MultiTransact(address owner, bytes32 operation, uint value, address to, bytes data);
+    event ConfirmationNeeded(bytes32 operation, address initiator, uint value, address to, bytes data);
+    function changeOwner(address _from, address _to);
+    function execute(address _to, uint _value, bytes _data) external returns (bytes32);
+    function confirm(bytes32 _h) returns (bool);
 }
 // usage:
-// hash h = Wallet(w).from(oneOwner).transact(to, value, data);
+// bytes32 h = Wallet(w).from(oneOwner).transact(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
 contract Wallet is multisig, multiowned, daylimit {
     // Transaction structure to remember details of transaction lest it need be saved for a later call.
@@ -192,7 +192,7 @@ contract Wallet is multisig, multiowned, daylimit {
     // Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
     event SingleTransact(address owner, uint value, address to, bytes data);
     // Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
-    event MultiTransact(address owner, hash operation, uint value, address to, bytes data);*/
+    event MultiTransact(address owner, bytes32 operation, uint value, address to, bytes data);*/
     // constructor - just pass on the owner arra to the multiowned.
     event Created();
     function Wallet() {
@@ -212,7 +212,7 @@ contract Wallet is multisig, multiowned, daylimit {
     // If not, goes into multisig process. We provide a hash on return to allow the sender to provide
     // shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
     // and _data arguments). They still get the option of using them if they want, anyways.
-    function execute(address _to, uint _value, bytes _data) returns (hash _r) {
+    function execute(address _to, uint _value, bytes _data) external returns (bytes32 _r) {
         // first, take the opportunity to check that we're under the daily limit.
         if (underLimit(_value)) {
             SingleTransact(msg.sender, _value, _to, _data);
@@ -231,7 +231,7 @@ contract Wallet is multisig, multiowned, daylimit {
     }
     // confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
     // to determine the body of the transaction from the hash provided.
-    function confirm(hash _h) onlymanyowners(_h) returns (bool) {
+    function confirm(bytes32 _h) onlymanyowners(_h) returns (bool) {
         if (m_txs[_h].to != 0) {
             m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data);
             MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data);
@@ -240,12 +240,12 @@ contract Wallet is multisig, multiowned, daylimit {
         }
     }
     // // internally confirm transaction with all of the info. returns true iff confirmed good and executed.
-    // function confirmVerbose(hash _h, address _to, uint _value, bytes _data) private onlymanyowners(_h) returns (bool) {
+    // function confirmVerbose(bytes32 _h, address _to, uint _value, bytes _data) private onlymanyowners(_h) returns (bool) {
     //     _to.call.value(_value)(_data);
     //     MultiTransact("out", msg.sender, _h, _value, _to);
     //     return true;
     // }
     // pending transactions we have at present.
-    mapping (hash => Transaction) m_txs;
+    mapping (bytes32 => Transaction) m_txs;
 }
 
