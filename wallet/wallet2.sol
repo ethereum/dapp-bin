@@ -77,7 +77,7 @@ contract multiowned {
         }
     }
     // Replaces an owner `_from` with another `_to`.
-    function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) {
+    function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
         uint ownerIndex = m_ownerIndex[_from];
         if (ownerIndex == 0) return;
         if (isOwner(_to)) return;
@@ -87,15 +87,19 @@ contract multiowned {
         m_ownerIndex[_to] = ownerIndex;
         OwnerChanged(_from, _to);
     }
-    function addOwner(address _owner) onlymanyowners(sha3(msg.data)) {
+    function addOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
         if (isOwner(_owner)) return;
 
+        if (m_numOwners >= c_maxOwners)
+            reorganizeOwners();
+        if (m_numOwners >= c_maxOwners)
+            return;
         m_numOwners++;
         m_owners[m_numOwners] = _owner;
         m_ownerIndex[_owner] = m_numOwners;
         OwnerAdded(_owner);
     }
-    function removeOwner(address _owner) onlymanyowners(sha3(msg.data)) {
+    function removeOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
         uint ownerIndex = m_ownerIndex[_owner];
         if (ownerIndex == 0) return;
 
@@ -103,7 +107,20 @@ contract multiowned {
         m_ownerIndex[_owner] = 0;
         OwnerRemoved(_owner);
     }
-    function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) {
+    function reorganizeOwners() private returns (bool) {
+        uint free = 1;
+        while (free < m_numOwners)
+        {
+            while (free < m_numOwners && m_owners[free] != 0) free++;
+            while (m_numOwners > 1 && m_owners[m_numOwners] == 0) m_numOwners--;
+            if (free < m_numOwners && m_owners[m_numOwners] != 0 && m_owners[free] == 0)
+            {
+                m_owners[free] = m_owners[m_numOwners];
+                m_ownerIndex[m_owners[free]] = free;
+            }
+        }
+    }
+    function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
         m_required = _newRequired;
         RequirementChanged(_newRequired);
     }
@@ -116,7 +133,8 @@ contract multiowned {
     // pointer used to find a free slot in m_owners
     uint m_numOwners;
     // list of owners
-    mapping(uint => address) m_owners;
+    address[256] m_owners;
+    uint constant c_maxOwners = 250;
     // index on the list of owners to allow reverse lookup
     mapping(address => uint) m_ownerIndex;
     // the ongoing operations.
@@ -132,16 +150,16 @@ contract daylimit is multiowned {
         m_lastDay = today();
     }
     // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
-    function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data)) {
+    function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data)) external {
         m_dailyLimit = _newLimit;
     }
     // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
-    function resetSpentToday() onlymanyowners(sha3(msg.data)) {
+    function resetSpentToday() onlymanyowners(sha3(msg.data)) external {
         m_spentToday = 0;
     }
     // checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
     // returns true. otherwise just returns false.
-    function underLimit(uint _value) internal onlyowner returns (bool) {
+    function underLimit(uint _value) internal returns (bool) {
         // reset the spend limit if we're on a different day to last time.
         if (today() > m_lastDay) {
             m_spentToday = 0;
@@ -171,7 +189,7 @@ contract multisig {
     event SingleTransact(address owner, uint value, address to, bytes data);
     event MultiTransact(address owner, bytes32 operation, uint value, address to, bytes data);
     event ConfirmationNeeded(bytes32 operation, address initiator, uint value, address to, bytes data);
-    function changeOwner(address _from, address _to);
+    function changeOwner(address _from, address _to) external;
     function execute(address _to, uint _value, bytes _data) external returns (bytes32);
     function confirm(bytes32 _h) returns (bool);
 }
@@ -196,7 +214,7 @@ contract Wallet is multisig, multiowned, daylimit {
     // constructor - just pass on the owner arra to the multiowned.
     event Created();
     function Wallet() {
-    	Created();
+        Created();
     }
     // kills the contract sending everything to `_to`.
     function kill(address _to) onlymanyowners(sha3(msg.data)) {
@@ -226,7 +244,7 @@ contract Wallet is multisig, multiowned, daylimit {
             m_txs[_r].to = _to;
             m_txs[_r].value = _value;
             m_txs[_r].data = _data;
-	        ConfirmationNeeded(_r, msg.sender, _value, _to, _data);
+            ConfirmationNeeded(_r, msg.sender, _value, _to, _data);
         }
     }
     // confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
