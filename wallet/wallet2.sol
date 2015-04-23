@@ -117,6 +117,7 @@ contract multiowned {
             {
                 m_owners[free] = m_owners[m_numOwners];
                 m_ownerIndex[m_owners[free]] = free;
+                m_owners[m_numOwners] = 0;
             }
         }
     }
