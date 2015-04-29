@@ -25,7 +25,7 @@ contract Registrar is NameRegistrar {
 contract OwnedRegistrar is Registrar, owned {
 	struct Record {
 		address primary;
-		address subregistrar;
+		address subRegistrar;
 		bytes32 content;
 	}
 
@@ -43,14 +43,14 @@ contract OwnedRegistrar is Registrar, owned {
 		m_toRecord[_name].primary = _a;
 		if (_primary)
 		{
-			ChangedWithPrimary(_name, _a);
+			PrimaryChanged(_name, _a);
 			m_toName[_a] = _name;
 		}
 		else
 			Changed(_name);
 	}
 	function setSubRegistrar(bytes32 _name, address _registrar) onlyowner {
-		m_toRecord[_name].registrar = _registrar;
+		m_toRecord[_name].subRegistrar = _registrar;
 		Changed(_name);
 	}
 	function setContent(bytes32 _name, bytes32 _content) onlyowner {

@@ -3,23 +3,23 @@
 // @authors:
 //   Gav Wood <g@ethdev.com>
 
-contract Registrar {
+contract UrlHint {
 	struct Reg {
-		string32 url;
+		bytes32 url;
 		address owner;
 	}
 
-	function url(hash _hash) constant returns (string32) {
+	function url(bytes32 _hash) constant returns (bytes32) {
 		return urls[_hash].url;
 	}
 
-	function suggestUrl(hash _hash, string32 _url) {
+	function suggestUrl(bytes32 _hash, bytes32 _url) {
 		if (urls[_hash].url == "" || urls[_hash].owner == msg.sender) {
 			urls[_hash].owner = msg.sender;
 			urls[_hash].url = _url;
 		}
 	}
 	
-	mapping (hash => Reg) urls;
+	mapping (bytes32 => Reg) urls;
 }
 
