@@ -102,9 +102,11 @@ contract multiowned {
     function removeOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
         uint ownerIndex = m_ownerIndex[_owner];
         if (ownerIndex == 0) return;
+        if (m_required > m_numOwners - 1) return;
 
         m_owners[ownerIndex] = 0;
         m_ownerIndex[_owner] = 0;
+        reorganizeOwners(); //make sure m_numOwner is equal to the number of owners and always points to the optimal free slot
         OwnerRemoved(_owner);
     }
     function reorganizeOwners() private returns (bool) {
