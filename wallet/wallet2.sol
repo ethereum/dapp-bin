@@ -121,6 +121,7 @@ contract multiowned {
         }
     }
     function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
+        if (_newRequired < m_numOwners ) return;
         m_required = _newRequired;
         RequirementChanged(_newRequired);
     }
