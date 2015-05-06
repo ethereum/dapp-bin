@@ -29,6 +29,10 @@ contract OwnedRegistrar is Registrar, owned {
 		bytes32 content;
 	}
 
+	function currentOwner() returns (address) {
+		return owner;
+	}
+
 	function disown(bytes32 _name) onlyowner {
 		if (m_toName[m_toRecord[_name].primary] == _name)
 		{
