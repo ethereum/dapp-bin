@@ -28,8 +28,8 @@ contract multiowned {
     function multiowned() {
         m_required = 1;
         m_numOwners = 1;
-        m_owners[m_numOwners] = msg.sender;
-        m_ownerIndex[msg.sender] = m_numOwners;
+        m_owners[m_numOwners] = uint(msg.sender);
+        m_ownerIndex[uint(msg.sender)] = m_numOwners;
     }
     // simple single-sig function modifier.
     modifier onlyowner {
@@ -45,7 +45,7 @@ contract multiowned {
     }
     function confirmed(bytes32 _operation) internal returns (bool) {
         // determine what index the present sender is:
-        uint ownerIndex = m_ownerIndex[msg.sender];
+        uint ownerIndex = m_ownerIndex[uint(msg.sender)];
         // make sure they're an owner
         if (ownerIndex == 0) return;
 
@@ -79,12 +79,12 @@ contract multiowned {
     // Replaces an owner `_from` with another `_to`.
     function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
         if (isOwner(_to)) return;
-        uint ownerIndex = m_ownerIndex[_from];
+        uint ownerIndex = m_ownerIndex[uint(_from)];
         if (ownerIndex == 0) return;
 
-        m_owners[ownerIndex] = _to;
-        m_ownerIndex[_from] = 0;
-        m_ownerIndex[_to] = ownerIndex;
+        m_owners[ownerIndex] = uint(_to);
+        m_ownerIndex[uint(_from)] = 0;
+        m_ownerIndex[uint(_to)] = ownerIndex;
         OwnerChanged(_from, _to);
     }
     function addOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
@@ -95,17 +95,17 @@ contract multiowned {
         if (m_numOwners >= c_maxOwners)
             return;
         m_numOwners++;
-        m_owners[m_numOwners] = _owner;
-        m_ownerIndex[_owner] = m_numOwners;
+        m_owners[m_numOwners] = uint(_owner);
+        m_ownerIndex[uint(_owner)] = m_numOwners;
         OwnerAdded(_owner);
     }
     function removeOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
-        uint ownerIndex = m_ownerIndex[_owner];
+        uint ownerIndex = m_ownerIndex[uint(_owner)];
         if (ownerIndex == 0) return;
         if (m_required > m_numOwners - 1) return;
 
         m_owners[ownerIndex] = 0;
-        m_ownerIndex[_owner] = 0;
+        m_ownerIndex[uint(_owner)] = 0;
         reorganizeOwners(); //make sure m_numOwner is equal to the number of owners and always points to the optimal free slot
         OwnerRemoved(_owner);
     }
@@ -128,7 +128,7 @@ contract multiowned {
         RequirementChanged(_newRequired);
     }
     function isOwner(address _addr) returns (bool) {
-        return m_ownerIndex[_addr] > 0;
+        return m_ownerIndex[uint(_addr)] > 0;
     }
 
     // the number of owners that must confirm the same operation before it is run.
@@ -136,10 +136,10 @@ contract multiowned {
     // pointer used to find a free slot in m_owners
     uint m_numOwners;
     // list of owners
-    address[256] m_owners;
+    uint[256] m_owners;
     uint constant c_maxOwners = 250;
     // index on the list of owners to allow reverse lookup
-    mapping(address => uint) m_ownerIndex;
+    mapping(uint => uint) m_ownerIndex;
     // the ongoing operations.
     mapping(bytes32 => PendingState) m_pending;
 }
