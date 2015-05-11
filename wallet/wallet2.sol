@@ -78,9 +78,9 @@ contract multiowned {
     }
     // Replaces an owner `_from` with another `_to`.
     function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data)) external {
+        if (isOwner(_to)) return;
         uint ownerIndex = m_ownerIndex[_from];
         if (ownerIndex == 0) return;
-        if (isOwner(_to)) return;
 
         m_owners[ownerIndex] = _to;
         m_ownerIndex[_from] = 0;
