@@ -117,6 +117,7 @@ contract multiowned {
             {
                 m_owners[free] = m_owners[m_numOwners];
                 m_ownerIndex[m_owners[free]] = free;
+                m_owners[m_numOwners] = 0;
             }
         }
     }
@@ -159,7 +160,7 @@ contract daylimit is multiowned {
     }
     // checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
     // returns true. otherwise just returns false.
-    function underLimit(uint _value) internal returns (bool) {
+    function underLimit(uint _value) internal onlyowner returns (bool) {
         // reset the spend limit if we're on a different day to last time.
         if (today() > m_lastDay) {
             m_spentToday = 0;
