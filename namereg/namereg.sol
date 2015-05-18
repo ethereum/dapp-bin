@@ -4,25 +4,23 @@
 //   Gav Wood <g@ethdev.com>
 
 contract NameRegister {
-	function getAddress(string32 _name) constant returns (address o_owner) {}
-	function getName(address _owner) constant returns (string32 o_name) {}
+	function getAddress(bytes32 _name) constant returns (address o_owner) {}
+	function getName(address _owner) constant returns (bytes32 o_name) {}
 }
 
-#require service, owned
+import "service";
+import "owned";
 contract NameReg is service(1), owned, NameRegister {
   	event AddressRegistered(address indexed account);
   	event AddressDeregistered(address indexed account);
 
 	function NameReg() {
-		toName[Config()] = "Config";
-		toAddress["Config"] = Config();
 		toName[this] = "NameReg";
 		toAddress["NameReg"] = this;
-		AddressRegistered(Config());
 		AddressRegistered(this);
 	}
 
-	function register(string32 name) {
+	function register(bytes32 name) {
 		// Don't allow the same name to be overwritten.
 		if (toAddress[name] != address(0))
 			return;
@@ -36,7 +34,7 @@ contract NameReg is service(1), owned, NameRegister {
 	}
 
 	function unregister() {
-		string32 n = toName[msg.sender];
+		bytes32 n = toName[msg.sender];
 		if (n == "")
 			return;
 		AddressDeregistered(toAddress[n]);
@@ -44,31 +42,31 @@ contract NameReg is service(1), owned, NameRegister {
 		toAddress[n] = address(0);
 	}
 
-	function addressOf(string32 name) constant returns (address addr) {
+	function addressOf(bytes32 name) constant returns (address addr) {
 		return toAddress[name];
 	}
 
-	function nameOf(address addr) constant returns (string32 name) {
+	function nameOf(address addr) constant returns (bytes32 name) {
 		return toName[addr];
 	}
 	
-	mapping (address => string32) toName;
-	mapping (string32 => address) toAddress;
+	mapping (address => bytes32) toName;
+	mapping (bytes32 => address) toAddress;
 }
 
 
 /*
 
 // Solidity Interface:
-contract NameReg{function kill(){}function register(string32 name){}function addressOf(string32 name)constant returns(address addr){}function unregister(){}function nameOf(address addr)constant returns(string32 name){}}
+contract NameReg{function kill(){}function register(bytes32 name){}function addressOf(bytes32 name)constant returns(address addr){}function unregister(){}function nameOf(address addr)constant returns(bytes32 name){}}
 
 // Example Solidity use:
 NameReg(addrNameReg).register("Some Contract");
 
 // JS Interface:
-var NameReg = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"getName","outputs":[{"name":"o_name","type":"string32"}],"type":"function"},{"constant":false,"inputs":[{"name":"name","type":"string32"}],"name":"register","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"name","type":"string32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string32"}],"name":"getAddress","outputs":[{"name":"o_owner","type":"address"}],"type":"function"},{"constant":false,"inputs":[],"name":"unregister","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"string32"}],"type":"function"},{"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"AddressRegistered","type":"event"},{"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"AddressDeregistered","type":"event"}]);
+var abi = [{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"getName","outputs":[{"name":"o_name","type":"bytes32"}],"type":"function"},{"constant":false,"inputs":[{"name":"name","type":"bytes32"}],"name":"register","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"name","type":"bytes32"}],"name":"addressOf","outputs":[{"name":"addr","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"bytes32"}],"name":"getAddress","outputs":[{"name":"o_owner","type":"address"}],"type":"function"},{"constant":false,"inputs":[],"name":"unregister","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"addr","type":"address"}],"name":"nameOf","outputs":[{"name":"name","type":"bytes32"}],"type":"function"},{"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"AddressRegistered","type":"event"},{"inputs":[{"indexed":true,"name":"account","type":"address"}],"name":"AddressDeregistered","type":"event"}];
 
 // Example JS use:
-web3.eth.contract(addrNameReg, abiNameReg).register("My Name").transact();
+web3.eth.contract(abi).at(address).register("My Name");
 
 */
