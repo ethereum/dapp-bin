@@ -13,6 +13,7 @@ contract multiowned {
     struct PendingState {
         uint yetNeeded;
         uint ownersDone;
+        uint index;
     }
     // this contract only has five types of events: it can accept a confirmation, in which case
     // we record owner and operation (hash) alongside it.
@@ -43,6 +44,18 @@ contract multiowned {
         if (confirmed(_operation))
             _
     }
+    // Revokes a prior confirmation of the given operation
+    function revoke(bytes32 _operation) external {
+        uint ownerIndex = m_ownerIndex[msg.sender];
+        // make sure they're an owner
+        if (ownerIndex == 0) return;
+        uint ownerIndexBit = 2**ownerIndex;
+        var pending = m_pending[_operation];
+        if (pending.ownersDone & ownerIndexBit > 0) {
+            pending.yetNeeded++;
+            pending.ownersDone -= ownerIndexBit;
+        }
+    }
     function confirmed(bytes32 _operation) internal returns (bool) {
         // determine what index the present sender is:
         uint ownerIndex = m_ownerIndex[uint(msg.sender)];
@@ -56,6 +69,8 @@ contract multiowned {
             pending.yetNeeded = m_required;
             // reset which owners have confirmed (none) - set our bitmap to 0.
             pending.ownersDone = 0;
+            pending.index = m_pendingIndex.length++;
+            m_pendingIndex[pending.index] = _operation;
         }
         // determine the bit to set for this owner.
         uint ownerIndexBit = 2**ownerIndex;
@@ -65,6 +80,7 @@ contract multiowned {
             // ok - check if count is enough to go ahead.
             if (pending.yetNeeded <= 1) {
                 // enough confirmations: reset and run interior.
+                delete m_pendingIndex[m_pending[_operation].index];
                 delete m_pending[_operation];
                 return true;
             }
@@ -82,6 +98,7 @@ contract multiowned {
         uint ownerIndex = m_ownerIndex[uint(_from)];
         if (ownerIndex == 0) return;
 
+        clearPending();
         m_owners[ownerIndex] = uint(_to);
         m_ownerIndex[uint(_from)] = 0;
         m_ownerIndex[uint(_to)] = ownerIndex;
@@ -90,6 +107,7 @@ contract multiowned {
     function addOwner(address _owner) onlymanyowners(sha3(msg.data)) external {
         if (isOwner(_owner)) return;
 
+        clearPending();
         if (m_numOwners >= c_maxOwners)
             reorganizeOwners();
         if (m_numOwners >= c_maxOwners)
@@ -106,6 +124,7 @@ contract multiowned {
 
         m_owners[ownerIndex] = 0;
         m_ownerIndex[uint(_owner)] = 0;
+        clearPending();
         reorganizeOwners(); //make sure m_numOwner is equal to the number of owners and always points to the optimal free slot
         OwnerRemoved(_owner);
     }
@@ -123,9 +142,17 @@ contract multiowned {
             }
         }
     }
+    function clearPending() private {
+        uint length = m_pendingIndex.length;
+        for (uint i = 0; i < length; ++i)
+            if (m_pendingIndex[i] != 0)
+                delete m_pending[m_pendingIndex[i]];
+        delete m_pendingIndex;
+    }
     function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
         if (_newRequired < m_numOwners) return;
         m_required = _newRequired;
+        clearPending();
         RequirementChanged(_newRequired);
     }
     function isOwner(address _addr) returns (bool) {
@@ -143,6 +170,7 @@ contract multiowned {
     mapping(uint => uint) m_ownerIndex;
     // the ongoing operations.
     mapping(bytes32 => PendingState) m_pending;
+    bytes32[] m_pendingIndex;
 }
 
 // inheritable "property" contract that enables methods to be protected by placing a linear limit (specifiable)
