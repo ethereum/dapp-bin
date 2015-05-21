@@ -18,6 +18,7 @@ contract multiowned {
     // this contract only has five types of events: it can accept a confirmation, in which case
     // we record owner and operation (hash) alongside it.
     event Confirmation(address owner, bytes32 operation);
+    event Revoke(address owner, bytes32 operation);
     // some others are in the case of an owner changing.
     event OwnerChanged(address oldOwner, address newOwner);
     event OwnerAdded(address newOwner);
@@ -46,7 +47,7 @@ contract multiowned {
     }
     // Revokes a prior confirmation of the given operation
     function revoke(bytes32 _operation) external {
-        uint ownerIndex = m_ownerIndex[msg.sender];
+        uint ownerIndex = m_ownerIndex[uint(msg.sender)];
         // make sure they're an owner
         if (ownerIndex == 0) return;
         uint ownerIndexBit = 2**ownerIndex;
@@ -54,6 +55,7 @@ contract multiowned {
         if (pending.ownersDone & ownerIndexBit > 0) {
             pending.yetNeeded++;
             pending.ownersDone -= ownerIndexBit;
+            Revoke(msg.sender, _operation);
         }
     }
     function confirmed(bytes32 _operation) internal returns (bool) {
