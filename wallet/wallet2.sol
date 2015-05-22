@@ -152,7 +152,7 @@ contract multiowned {
         delete m_pendingIndex;
     }
     function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data)) external {
-        if (_newRequired < m_numOwners) return;
+        if (_newRequired > m_numOwners) return;
         m_required = _newRequired;
         clearPending();
         RequirementChanged(_newRequired);
