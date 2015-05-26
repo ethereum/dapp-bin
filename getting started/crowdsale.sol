@@ -1,16 +1,16 @@
 contract token { mapping (address => uint) public balance; function token() {}  function sendToken(address receiver, uint amount) returns(bool sufficient) {  } }
 
+
 contract CrowdSale {
     
     address public admin;
     address public beneficiary;
     uint public fundingGoal;
-    uint public numFunders;
     uint public amountRaised;
     uint public deadline;
     uint public price;
     token public tokenReward;   
-    mapping (uint => Funder) public funders;
+    Funder[] public funders;
     
     /* data structure to hold information about campaign contributors */
     struct Funder {
@@ -20,7 +20,7 @@ contract CrowdSale {
     
     /*  at initialization, setup the owner */
     function CrowdSale() {
-    admin = msg.sender;
+        admin = msg.sender;
     }   
     
     function setup(address _beneficiary, uint _fundingGoal, uint _duration, uint _price, address _reward) returns (bytes32 response){
@@ -29,8 +29,7 @@ contract CrowdSale {
             fundingGoal = _fundingGoal;
             deadline = now + _duration * 1 days;
             price = _price;
-            tokenReward = token(_reward);
-            
+            tokenReward = token(_reward);    
             return "campaign is set";
         } else if (msg.sender != admin) {
             return "not authorized";
@@ -39,8 +38,10 @@ contract CrowdSale {
         }
     }
     
-    /* The function without name is the default function that is called whenever anyone sends funds to a contract */
+    /* The function without name is the default function that is called whenever anyone sends funds to a contract without specifying any extra data or if the data does not match any of the function signatures */
     function () returns (bytes32 response) {
+        if (msg.data.length != 0) return;
+        var numFunders = funders.length;
         Funder f = funders[numFunders++];
         f.addr = msg.sender;
         f.amount = msg.value;
@@ -60,7 +61,7 @@ contract CrowdSale {
         }
         else if (deadline <= block.number){
             uint j = 0;
-            uint n = numFunders;
+            uint n = funders.length;
             while (j <= n){
                 funders[j].addr.send(funders[j].amount);
                 funders[j].addr = 0;

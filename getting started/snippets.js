@@ -18,7 +18,7 @@ i++;
 function checkAllProposals() {  
     for (i = 0; i< daoInstance.numProposals.call(); i++ ) { 
         var p = daoInstance.proposals.call(i)
-        console.log("Proposal #" + i + "    Send " + web3.fromWei( p[1], "ether") + " ether to address " + p[0] + " for " + p[2]); 
+        console.log("Proposal #" + i + "    Send " + web3.fromWei( p[1], "ether") + " ether to address " + p[0] + " for " + p[2] + ". " + (p[7]? (" It is still being voted with " + p[5] + " votes.") : (" It it's not active and received " + p[5] + " votes.") )); 
     }
 }
 
