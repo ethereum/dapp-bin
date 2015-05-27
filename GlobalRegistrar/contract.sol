@@ -18,6 +18,36 @@ contract Registrar is NameRegister {
 }
 
 contract AuctionSystem {
+	event AuctionEnded(bytes32 indexed _name, address _winner);
+	event NewBid(bytes32 indexed _name, address _bidder, uint _value);
+
+	/// Function that is called once an auction ends.
+	function onAuctionEnd(bytes32 _name) internal;
+
+	function bid(bytes32 _name, address _bidder, uint _value) internal {
+		var auction = m_auctions[_name];
+		if (auction.endDate > 0 && now > auction.endDate)
+		{
+			AuctionEnded(_name, auction.highestBidder);
+			onAuctionEnd(_name);
+			delete m_auctions[_name];
+			return;
+		}
+		if (msg.value > auction.highestBid)
+		{
+			// new bid on auction
+			auction.secondHighestBid = auction.highestBid;
+			auction.sumOfBids += _value;
+			auction.highestBid = _value;
+			auction.highestBidder = _bidder;
+			auction.endDate = now + c_biddingTime;
+
+			NewBid(_name, _bidder, _value);
+		}
+	}
+
+	uint constant c_biddingTime = 7 days;
+
 	struct Auction {
 		address highestBidder;
 		uint highestBid;
@@ -25,37 +55,6 @@ contract AuctionSystem {
 		uint sumOfBids;
 		uint endDate;
 	}
-	uint constant c_biddingTime = 7 days;
-
-	function auctionWinner(bytes32 _name, address currentOwner) internal returns (address) {
-		var auction = m_auctions[_name];
-		if (auction.endDate == 0)
-		{
-			// start auction
-		}
-		else if (now > auction.endDate)
-		{
-			// auction ended
-			if (currentOwner != 0)
-				currentOwner.send(auction.sumOfBids - auction.highestBid / 100);
-			else
-				auction.highestBidder.send(auction.highestBid - auction.secondHighestBid);
-			address winner = auction.highestBidder;
-			delete m_auctions[_name];
-			return winner;
-		}
-		// new bid on auction
-		if (msg.value > auction.highestBid)
-		{
-			auction.secondHighestBid = auction.highestBid;
-			auction.sumOfBids += msg.value;
-			auction.highestBid = msg.value;
-			auction.highestBidder = msg.sender;
-			auction.endDate = now + c_biddingTime;
-		}
-		return 0;
-	}
-
 	mapping (bytes32 => Auction) m_auctions;
 }
 
@@ -76,18 +75,23 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		// TODO: Populate with hall-of-fame.
 	}
 
+	function onAuctionEnd(bytes32 _name) internal {
+		var auction = m_auctions[_name];
+		var record = m_toRecord[_name];
+		if (record.owner != 0)
+			record.owner.send(auction.sumOfBids - auction.highestBid / 100);
+		else
+			auction.highestBidder.send(auction.highestBid - auction.secondHighestBid);
+		record.owner = auction.highestBidder;
+		Changed(_name);
+	}
+
 	function reserve(bytes32 _name) external {
 		bool needAuction = requiresAuction(_name);
 		if (needAuction && now < m_toRecord[_name].renewalDate)
 			return;
 		if (needAuction)
-		{
-			address winner = auctionWinner(_name, m_toRecord[_name].owner);
-			if (winner == 0)
-				return;
-			m_toRecord[_name].owner = winner;
-			Changed(_name);
-		}
+			bid(_name, msg.sender, msg.value);
 		else if (m_toRecord[_name].owner == 0)
 		{
 			m_toRecord[_name].owner = msg.sender;
@@ -142,6 +146,5 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 	function name(address _owner) constant returns (bytes32 o_name) { return m_toName[_owner]; }
 
 	mapping (address => bytes32) m_toName;
-	mapping (bytes32 => Record)  m_toRecord;
+	mapping (bytes32 => Record) m_toRecord;
 }
-
