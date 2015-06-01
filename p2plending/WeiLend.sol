@@ -148,7 +148,7 @@ contract WeiLend {
             l.status = 1;
             l.timelimit = l.timelimit + l.gracePeriod;
             //calculates the monthly installment amount. Constant installment loan
-            l.installment = l.amount * ((l.interestRateM*((1+l.interestRateM)^(l.tenorM)))/(((1+l.interestRateM)^(l.tenorM))-1));
+            l.installment = l.amount * ((l.interestRateM*((1+l.interestRateM)**(l.tenorM)))/(((1+l.interestRateM)**(l.tenorM))-1));
             l.balance = l.amount;
         }
     }
