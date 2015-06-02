@@ -1,6 +1,5 @@
 contract token { mapping (address => uint) public balance; function token() {}  function sendToken(address receiver, uint amount) returns(bool sufficient) {  } }
 
-
 contract CrowdSale {
     
     address public admin;
@@ -47,26 +46,20 @@ contract CrowdSale {
         f.amount = msg.value;
         amountRaised += f.amount;
         tokenReward.sendToken(msg.sender, f.amount/price);
-        
         return "thanks for your contribution";
     }
         
     /* checks if the goal or time limit has been reached and ends the campaign */
     function checkGoalReached() returns (bytes32 response) {
         if (amountRaised >= fundingGoal){
-            uint i = 0; 
             beneficiary.send(amountRaised);
-         suicide(beneficiary);
-         return "Goal Reached!"; 
+            suicide(beneficiary);
         }
         else if (deadline <= block.number){
-            uint j = 0;
-            uint n = funders.length;
-            while (j <= n){
-                funders[j].addr.send(funders[j].amount);
-                funders[j].addr = 0;
-                funders[j].amount = 0;
-                j++;
+            for (uint i = 0; i < funders.length; i++) {
+                funders[i].addr.send(funders[i].amount);
+                funders[i].addr = 0;
+                funders[i].amount = 0;
             }
             suicide(beneficiary);
             return "Deadline passed";

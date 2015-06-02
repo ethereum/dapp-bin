@@ -20,7 +20,7 @@ contract token {
     function claimMiningReward() {
         if (miningReward[block.number] == 0) {
             balances[block.coinbase] += 1;
-    miningReward[block.number] = block.coinbase;
+            miningReward[block.number] = block.coinbase;
         }
     }
 
