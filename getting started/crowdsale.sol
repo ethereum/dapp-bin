@@ -1,4 +1,8 @@
-contract token { mapping (address => uint) public balance; function token() {}  function sendToken(address receiver, uint amount) returns(bool sufficient) {  } }
+contract token { 
+    mapping (address => uint) public balance; 
+    function token() {}  
+    function sendToken(address receiver, uint amount) returns(bool sufficient) {  } 
+}
 
 contract CrowdSale {
     
