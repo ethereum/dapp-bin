@@ -76,7 +76,7 @@ contract OwnedRegistrar is Registrar, owned {
 	mapping (string => Record) m_toRecord;
 }
 
-contract FixedFeeRegistrar is Registrar, owned {
+contract FixedFeeRegistrar is Registrar {
 	struct Record {
 		address primary;
 		address subRegistrar;
@@ -84,7 +84,7 @@ contract FixedFeeRegistrar is Registrar, owned {
 		address owner;
 	}
 
-	modifier onlyrecordowner(bytes32 _name) { if (m_toRecord[_name].owner == msg.sender) _ }
+	modifier onlyrecordowner(string _name) { if (m_toRecord[_name].owner == msg.sender) _ }
 
 	function reserve(string _name) {
 		if (m_toRecord[_name].owner == 0 && msg.value == c_fee) {
