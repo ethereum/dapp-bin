@@ -1,0 +1,4 @@
+{
+	[[1]] (caller)
+	(returnlll (when (= (caller) @@1) [[0]] $0))
+}
