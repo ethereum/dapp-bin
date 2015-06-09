@@ -144,7 +144,7 @@ contract multiowned {
             }
         }
     }
-    function clearPending() private {
+    function clearPending() internal {
         uint length = m_pendingIndex.length;
         for (uint i = 0; i < length; ++i)
             if (m_pendingIndex[i] != 0)
@@ -290,6 +290,12 @@ contract Wallet is multisig, multiowned, daylimit {
             delete m_txs[_h];
             return true;
         }
+    }
+    function clearPending() internal {
+        uint length = m_pendingIndex.length;
+        for (uint i = 0; i < length; ++i)
+            delete m_txs[m_pendingIndex[i]];
+        super.clearPending();
     }
     // // internally confirm transaction with all of the info. returns true iff confirmed good and executed.
     // function confirmVerbose(bytes32 _h, address _to, uint _value, bytes _data) private onlymanyowners(_h) returns (bool) {
