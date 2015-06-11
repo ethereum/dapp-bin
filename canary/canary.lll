@@ -1,4 +1,5 @@
 {
 	[[1]] (caller)
-	(returnlll (when (= (caller) @@1) [[0]] $0))
+	(returnlll (when (&& (= (caller) @@1) (= (blockhash $0) $1)) [[0]] $2))
 }
+
