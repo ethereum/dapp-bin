@@ -162,17 +162,17 @@ contract multiowned {
     }
 
     // the number of owners that must confirm the same operation before it is run.
-    uint m_required;
+    uint public m_required;
     // pointer used to find a free slot in m_owners
-    uint m_numOwners;
+    uint public m_numOwners;
     // list of owners
-    uint[256] m_owners;
+    uint[256] public m_owners;
     uint constant c_maxOwners = 250;
     // index on the list of owners to allow reverse lookup
-    mapping(uint => uint) m_ownerIndex;
+    mapping(uint => uint) public m_ownerIndex;
     // the ongoing operations.
-    mapping(bytes32 => PendingState) m_pending;
-    bytes32[] m_pendingIndex;
+    mapping(bytes32 => PendingState) public m_pending;
+    bytes32[] public m_pendingIndex;
 }
 
 // inheritable "property" contract that enables methods to be protected by placing a linear limit (specifiable)
@@ -213,9 +213,9 @@ contract daylimit is multiowned {
     }
     // determines today's index.
     function today() private constant returns (uint) { return now / 1 days; }
-    uint m_spentToday;
-    uint m_dailyLimit;
-    uint m_lastDay;
+    uint public m_spentToday;
+    uint public m_dailyLimit;
+    uint public m_lastDay;
 }
 // interface contract for multisig proxy contracts; see below for docs.
 contract multisig {
@@ -304,6 +304,6 @@ contract Wallet is multisig, multiowned, daylimit {
     //     return true;
     // }
     // pending transactions we have at present.
-    mapping (bytes32 => Transaction) m_txs;
+    mapping (bytes32 => Transaction) public m_txs;
 }
 
