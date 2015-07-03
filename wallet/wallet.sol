@@ -1,8 +1,7 @@
 //sol Wallet
 // Multi-sig, daily-limited account proxy/wallet.
 // @authors:
-//   Gav Wood <g@ethdev.com>
-
+// Gav Wood <g@ethdev.com>
 // inheritable "property" contract that enables methods to be protected by requiring the acquiescence of either a
 // single, or, crucially, each of a number of, designated owners.
 // usage:
@@ -10,251 +9,324 @@
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
 contract multiowned {
-	// struct for the status of a pending operation.
-	struct PendingState {
-		uint yetNeeded;
-		uint ownersDone;
-	}
+    // struct for the status of a pending operation.
+    struct PendingState {
+        uint yetNeeded;
+        uint ownersDone;
+        uint index;
+    }
 
-	// this contract only has two types of events: it can accept a confirmation, in which case
-	// we record owner and operation (hash) alongside it.
-	event Confirmation(address owner, hash operation);
-	// the other is in the case of an owner changing. here we record the old and new owners.
-	event OwnerChanged(address oldOwner, address newOwner);
+    // this contract only has five types of events: it can accept a confirmation, in which case
+    // we record owner and operation (hash) alongside it.
+    event Confirmation(address owner, bytes32 operation);
+    event Revoke(address owner, bytes32 operation);
+    // some others are in the case of an owner changing.
+    event OwnerChanged(address oldOwner, address newOwner);
+    event OwnerAdded(address newOwner);
+    event OwnerRemoved(address oldOwner);
+    // the last one is emitted if the required signatures change
+    event RequirementChanged(uint newRequirement);
 
-	// constructor is given number of sigs required to do protected "onlyowners" transactions
-	// as well as the selection of addresses capable of confirming them. 
-	function multiowned(uint _required, address[] _owners) {
-		m_required = _required;
-		m_owners = _owners;
-	}
-	
-	// simple single-sig function modifier.
-	modifier onlyowner {
-		if (m_owners.find(msg.sender) != notfound)
-			_
-	}
 
-	// multi-sig function modifier: the operation must have an intrinsic hash in order
-	// that later attempts can be realised as the same underlying operation and
-	// thus count as confirmations.
-	modifier onlymanyowners(hash _operation) {
-		if (confirm(_operation))
-			_
-	}
-	
-	function confirm(hash _operation) protected returns (bool _r) {
-		// determine what index the present sender is:
-		uint ownerIndex = m_owners.find(msg.sender);
-		
-		// make sure they're an owner
-		if (ownerIndex != notfound) {
-			// if we're not yet working on this operation, switch over and reset the confirmation status.
-			if (!m_pending[_operation].yetNeeded) {
-				// reset count of confirmations needed.
-				m_pending[_operation].yetNeeded = _sigs.size();
-				// reset which owners have confirmed (none) - set our bitmap to 0.
-				m_pending[_operation].ownersDone = 0;
-			}
-			// determine the bit to set for this owner.
-			uint ownerIndexBit = 1 << ownerIndex;
-			
-			// make sure we (the message sender) haven't confirmed this operation previously.
-			assert(m_pending[_operation].yetNeeded > 0);
-			if (!(m_pending[_operation].ownersDone & ownerIndexBit)) {
-				Confirmation(msg.sender, _operation);
-				// ok - check if count is enough to go ahead.
-				if (m_pending[_operation].yetNeeded == 1) {
-					// enough confirmations: reset and run interior.
-					delete m_pending[_operation];
-					_r = true;
-				}
-				else
-				{
-					// not enough: record that this owner in particular confirmed.
-					m_pending[_operation].yetNeeded--;
-					m_pending[_operation].ownersDone |= ownerIndexBit;
-				}
-			}
-		}
-	}
-	
-	// replaces an owner `_from` with another `_to`.
-	function changeOwner(address _from, address _to) external multiowned(sha3(msg.sig, _from, _to)) {
-		uint ownerIndex = m_owners.find(_from);
-		if (ownerIndex != notfound)
-		{
-			m_owners[ownerIndex] = _to;
-			OwnerChanged(_from, _to);
-		}
-	}
-	
-	// the number of owners that must confirm the same operation before it is run.
-	uint constant m_required;
+    // constructor is given number of sigs required to do protected "onlymanyowners" transactions
+    // as well as the selection of addresses capable of confirming them.
+    function multiowned() {
+        m_required = 1;
+        m_numOwners = 1;
+        m_owners[m_numOwners] = uint(msg.sender);
+        m_ownerIndex[uint(msg.sender)] = m_numOwners;
+    }
+    // simple single-sig function modifier.
+    modifier onlyowner {
+        if (isOwner(msg.sender))
+            _
+    }
+    // multi-sig function modifier: the operation must have an intrinsic hash in order
+    // that later attempts can be realised as the same underlying operation and
+    // thus count as confirmations.
+    modifier onlymanyowners(bytes32 _operation) {
+        if (confirmed(_operation))
+            _
+    }
+    // Revokes a prior confirmation of the given operation
+    function revoke(bytes32 _operation) external {
+        uint ownerIndex = m_ownerIndex[uint(msg.sender)];
+        // make sure they're an owner
+        if (ownerIndex == 0) return;
+        uint ownerIndexBit = 2**ownerIndex;
+        var pending = m_pending[_operation];
+        if (pending.ownersDone & ownerIndexBit > 0) {
+            pending.yetNeeded++;
+            pending.ownersDone -= ownerIndexBit;
+            Revoke(msg.sender, _operation);
+        }
+    }
+    function confirmed(bytes32 _operation) internal returns (bool) {
+        // determine what index the present sender is:
+        uint ownerIndex = m_ownerIndex[uint(msg.sender)];
+        // make sure they're an owner
+        if (ownerIndex == 0) return;
 
-	//stateset owners {
-	set address[] m_owners;	
-	// set meaning you can do a fast look up into it to get the index.
-	// suggested impl as combination of count-prefixed contiguous series and normal mapping for the reverse lookup:
-	// sha3(BASE + 0) => N,
-	// sha3(BASE + 1) => address[0],
-	// ...
-	// sha3(BASE + N) => address[N-1],
-	// sha3(BASE ++ address[0]) => 1,
-	// ...
-	// sha3(BASE ++ address[N-1]) -> N
-	//
-	// provides:
-	// size: m_owners.size()
-	// dereference: m_owners[0], ..., m_owners[m_owners.size() - 1]
-	// alteration: m_owners[2] = newValue; (original m_owners[2] is removed)
-	// find: m_owners.find(m_owners[0]) == 0, ..., m_owners.find(m_owners[m_owners.size() - 1]) == m_owners.size() - 1,  m_owners.find(...) == (uint)-1 == notfound
-	// append: m_owners.insert(n): m_owners[m_owners.size() - 1] == n, m_owners.lookup(n) == m_owners.size() - 1
-	// delete: delete m_owners[n]
-	// clear: m_owners.clear(): m_owners.size() == 0 (or just delete m_owners)
-	//}
+        var pending = m_pending[_operation];
+        // if we're not yet working on this operation, switch over and reset the confirmation status.
+        if (pending.yetNeeded == 0) {
+            // reset count of confirmations needed.
+            pending.yetNeeded = m_required;
+            // reset which owners have confirmed (none) - set our bitmap to 0.
+            pending.ownersDone = 0;
+            pending.index = m_pendingIndex.length++;
+            m_pendingIndex[pending.index] = _operation;
+        }
+        // determine the bit to set for this owner.
+        uint ownerIndexBit = 2**ownerIndex;
+        // make sure we (the message sender) haven't confirmed this operation previously.
+        if (pending.ownersDone & ownerIndexBit == 0) {
+            Confirmation(msg.sender, _operation);
+            // ok - check if count is enough to go ahead.
+            if (pending.yetNeeded <= 1) {
+                // enough confirmations: reset and run interior.
+                delete m_pendingIndex[m_pending[_operation].index];
+                delete m_pending[_operation];
+                return true;
+            }
+            else
+            {
+                // not enough: record that this owner in particular confirmed.
+                pending.yetNeeded--;
+                pending.ownersDone |= ownerIndexBit;
+            }
+        }
+    }
+    // Replaces an owner `_from` with another `_to`.
+    function changeOwner(address _from, address _to) onlymanyowners(sha3(msg.data, block.number)) external {
+        if (isOwner(_to)) return;
+        uint ownerIndex = m_ownerIndex[uint(_from)];
+        if (ownerIndex == 0) return;
 
-	/*	
-	// for now could just be:
-	uint m_ownersCount;
-	mapping (uint => address) m_owners;
-	mapping (address => uint) m_ownersFind;
-	*/
-	
-	// the ongoing operations.
-	mapping { hash => PendingState } m_pending;
+        clearPending();
+        m_owners[ownerIndex] = uint(_to);
+        m_ownerIndex[uint(_from)] = 0;
+        m_ownerIndex[uint(_to)] = ownerIndex;
+        OwnerChanged(_from, _to);
+    }
+    function addOwner(address _owner) onlymanyowners(sha3(msg.data, block.number)) external {
+        if (isOwner(_owner)) return;
+
+        clearPending();
+        if (m_numOwners >= c_maxOwners)
+            reorganizeOwners();
+        if (m_numOwners >= c_maxOwners)
+            return;
+        m_numOwners++;
+        m_owners[m_numOwners] = uint(_owner);
+        m_ownerIndex[uint(_owner)] = m_numOwners;
+        OwnerAdded(_owner);
+    }
+    function removeOwner(address _owner) onlymanyowners(sha3(msg.data, block.number)) external {
+        uint ownerIndex = m_ownerIndex[uint(_owner)];
+        if (ownerIndex == 0) return;
+        if (m_required > m_numOwners - 1) return;
+
+        m_owners[ownerIndex] = 0;
+        m_ownerIndex[uint(_owner)] = 0;
+        clearPending();
+        reorganizeOwners(); //make sure m_numOwner is equal to the number of owners and always points to the optimal free slot
+        OwnerRemoved(_owner);
+    }
+    function reorganizeOwners() private returns (bool) {
+        uint free = 1;
+        while (free < m_numOwners)
+        {
+            while (free < m_numOwners && m_owners[free] != 0) free++;
+            while (m_numOwners > 1 && m_owners[m_numOwners] == 0) m_numOwners--;
+            if (free < m_numOwners && m_owners[m_numOwners] != 0 && m_owners[free] == 0)
+            {
+                m_owners[free] = m_owners[m_numOwners];
+                m_ownerIndex[m_owners[free]] = free;
+                m_owners[m_numOwners] = 0;
+            }
+        }
+    }
+    function clearPending() internal {
+        uint length = m_pendingIndex.length;
+        for (uint i = 0; i < length; ++i)
+            if (m_pendingIndex[i] != 0)
+                delete m_pending[m_pendingIndex[i]];
+        delete m_pendingIndex;
+    }
+    function changeRequirement(uint _newRequired) onlymanyowners(sha3(msg.data, block.number)) external {
+        if (_newRequired > m_numOwners) return;
+        m_required = _newRequired;
+        clearPending();
+        RequirementChanged(_newRequired);
+    }
+    function isOwner(address _addr) returns (bool) {
+        return m_ownerIndex[uint(_addr)] > 0;
+    }
+    function hasConfirmed(bytes32 _operation, address _owner) constant returns (bool) {
+        var pending = m_pending[_operation];
+        uint ownerIndex = m_ownerIndex[uint(_owner)];
+
+        // make sure they're an owner
+        if (ownerIndex == 0) return false;
+
+        // determine the bit to set for this owner.
+        uint ownerIndexBit = 2**ownerIndex;
+        if (pending.ownersDone & ownerIndexBit == 0) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+
+    // the number of owners that must confirm the same operation before it is run.
+    uint public m_required;
+    // pointer used to find a free slot in m_owners
+    uint public m_numOwners;
+    // list of owners
+    uint[256] m_owners;
+    uint constant c_maxOwners = 250;
+    // index on the list of owners to allow reverse lookup
+    mapping(uint => uint) m_ownerIndex;
+    // the ongoing operations.
+    mapping(bytes32 => PendingState) m_pending;
+    bytes32[] m_pendingIndex;
 }
 
 // inheritable "property" contract that enables methods to be protected by placing a linear limit (specifiable)
 // on a particular resource per calendar day. is multiowned to allow the limit to be altered. resource that method
 // uses is specified in the modifier.
 contract daylimit is multiowned {
-	// constructor - just records the present day's index.
-	function daylimit() {
-		m_lastDay = today();
-	}
 
-	// (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
-	function setDailyLimit(uint _newLimit) external onlyowners(sha3(msg.sig, _newLimit)) {
-		m_dailyLimit = _newLimit;
-	}
-	
-	// (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
-	function resetSpentToday() external onlyowners(sha3(msg.sig)) {
-		m_spentToday = 0;
-	}
-	
-	// checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
-	// returns true. otherwise just returns false.
-	function underLimit(uint _value) protected onlyowner {
-		// reset the spend limit if we're on a different day to last time.
-		if (today() > m_lastDay) {
-			m_spentToday = 0;
-			m_lastDay = today();
-		}
-		// check to see if there's enough left - if so, subtract and return true.
-		if (m_spentToday + _value <= m_dailyLimit) {
-			m_spendToday += _value;
-			return true;
-		}
-		return false;
-	}
-	
-	// simple modifier for daily limit.
-	modifier limitedDaily(uint _value) {
-		if (underLimit(_value))
-			_
-	}
+    // constructor - just records the present day's index.
+    function daylimit() {
+        m_lastDay = today();
+    }
+    // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
+    function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data, block.number)) external {
+        m_dailyLimit = _newLimit;
+    }
+    // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
+    function resetSpentToday() onlymanyowners(sha3(msg.data, block.number)) external {
+        m_spentToday = 0;
+    }
+    // checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
+    // returns true. otherwise just returns false.
+    function underLimit(uint _value) internal onlyowner returns (bool) {
+        // reset the spend limit if we're on a different day to last time.
+        if (today() > m_lastDay) {
+            m_spentToday = 0;
+            m_lastDay = today();
+        }
+        // check to see if there's enough left - if so, subtract and return true.
+        if (m_spentToday + _value >= m_spentToday && m_spentToday + _value <= m_dailyLimit) {
+            m_spentToday += _value;
+            return true;
+        }
+        return false;
+    }
+    // simple modifier for daily limit.
+    modifier limitedDaily(uint _value) {
+        if (underLimit(_value))
+            _
+    }
+    // determines today's index.
+    function today() private constant returns (uint) { return now / 1 days; }
 
-	// determines today's index.
-	function today() private constant returns (uint r) { r = block.timestamp / (60 * 60 * 24); }
-	
-	uint m_spentToday;
-	uint m_dailyLimit;
-	uint m_lastDay;
+    uint m_spentToday;
+    uint public m_dailyLimit;
+    uint m_lastDay;
 }
-
-// interface contract for multisig proxy contracts.
+// interface contract for multisig proxy contracts; see below for docs.
 contract multisig {
-	function changeOwner(address _from, address _to) external;
-	function execute(address _to, uint _value, string _data) external returns (hash _r);
-	function confirm(hash _h) external;
+    event Deposit(address from, uint value);
+    event SingleTransact(address owner, uint value, address to, bytes data);
+    event MultiTransact(address owner, bytes32 operation, uint value, address to, bytes data);
+    event ConfirmationNeeded(bytes32 operation, address initiator, uint value, address to, bytes data);
+    function changeOwner(address _from, address _to) external;
+    function execute(address _to, uint _value, bytes _data) external returns (bytes32);
+    function confirm(bytes32 _h) returns (bool);
 }
-
 // usage:
-// hash h = Wallet(w).from(oneOwner).transact(to, value, data);
+// bytes32 h = Wallet(w).from(oneOwner).transact(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
-contract Wallet is multisig multiowned daylimit {
-	// Transaction structure to remember details of transaction lest it need be saved for a later call.
-	structure Transaction {
-		address to;
-		uint value;
-		byte[] data;
-	}
-	
-	// logged events:
-	// Funds has arrived into the wallet (record how much).
-	event CashIn(address indexed from, uint value);
-	// Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
-	event SingleTransact(string32 indexed out = "out", address owner, uint value, address to);
-	// Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
-	event MultiTransact(string32 indexed out = "out", address owner, hash operation, uint value, address to);
-	
-	// constructor - just pass on the owner arra to the multiowned.
-	function Wallet(address[] _owners) multiowned(2, _owners) {}
-	
-	// kills the contract sending everything to `_to`.
-	function kill(address _to) external onlyowners(sha3("kill", _to)) {
-		this.suicide(_to);
-	}
-	
-	// gets called when no other function matches
-	function() {
-		// just being sent some cash?
-		if (msg.value) {
-			CashIn(msg.from, msg.value);
-		}
-	}
+contract Wallet is multisig, multiowned, daylimit {
+    // Transaction structure to remember details of transaction lest it need be saved for a later call.
+    struct Transaction {
+        address to;
+        uint value;
+        bytes data;
+    }
 
-	// Outside-visible transact entry point. Executes transacion immediately if below daily spend limit.
-	// If not, goes into multisig process. We provide a hash on return to allow the sender to provide
-	// shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
-	// and _data arguments). They still get the option of using them if they want, anyways.
-	function execute(address _to, uint _value, byte[] _data) external returns (hash _r) {
-		// first, take the opportunity to check that we're under the daily limit.
-		if (underLimit(_value)) {
-			log SingleTransact(_value, _to);
-			// yes - just execute the call.
-			_to.call(_value, _data);
-			return 0;
-		}
-		
-		// determine our operation hash.
-		_r = sha3("transact", _to, _value, _data);
-		if (!confirm(_r) && m_txs[_r].to == 0) {
-			m_txs[_r].to = _to;
-			m_txs[_r].value = _value;
-			m_txs[_r].data = _data;
-		}
-	}
-	
-	// confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
-	// to determine the body of the transaction from the hash provided.
-	function confirm(hash _h) external onlyowners(_h) {
-		if (m_txs[_h].to != 0) {
-			m_txs[_h].to.call(m_txs[_h].value, m_txs[_h].data);
-			MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to);
-			delete m_txs[_h];
-		}
-	}
-	
-	// internally confirm transaction with all of the info. returns true iff confirmed good and executed.
-	function confirm(hash _h, address _to, uint _value, bytes[] _data) private onlyowners(_h) returns (bool _r) {
-		_to.call(_value, _data);
-		MultiTransact(msg.sender, _h, _value, _to);
-		_r = true;
-	}
+    /*
+    // logged events:
+    // Funds has arrived into the wallet (record how much).
+    event Deposit(address from, uint value);
+    // Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
+    event SingleTransact(address owner, uint value, address to, bytes data);
+    // Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
+    event MultiTransact(address owner, bytes32 operation, uint value, address to, bytes data);*/
+    
+    event Created(bytes32 indexed identifier);
 
-	// pending transactions we have at present.
-	mapping (hash => Transaction) m_txs;
+    // constructor - just pass on the owner arra to the multiowned.
+    function Wallet(bytes32 identifier) {
+        Created(identifier);
+    }
+    // kills the contract sending everything to `_to`.
+    function kill(address _to) onlymanyowners(sha3(msg.data, block.number)) external {
+        suicide(_to);
+    }
+    // gets called when no other function matches
+    function() {
+        // just being sent some cash?
+        if (msg.value > 0)
+            Deposit(msg.sender, msg.value);
+    }
+    // Outside-visible transact entry point. Executes transacion immediately if below daily spend limit.
+    // If not, goes into multisig process. We provide a hash on return to allow the sender to provide
+    // shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
+    // and _data arguments). They still get the option of using them if they want, anyways.
+    function execute(address _to, uint _value, bytes _data) external onlyowner returns (bytes32 _r) {
+        // first, take the opportunity to check that we're under the daily limit.
+        if (underLimit(_value)) {
+            SingleTransact(msg.sender, _value, _to, _data);
+            // yes - just execute the call.
+            _to.call.value(_value)(_data);
+            return 0;
+        }
+        // determine our operation hash.
+        _r = sha3(msg.data, block.number);
+        if (!confirm(_r) && m_txs[_r].to == 0) {
+            m_txs[_r].to = _to;
+            m_txs[_r].value = _value;
+            m_txs[_r].data = _data;
+            ConfirmationNeeded(_r, msg.sender, _value, _to, _data);
+        }
+    }
+    // confirm a transaction through just the hash. we use the previous transactions map, m_txs, in order
+    // to determine the body of the transaction from the hash provided.
+    function confirm(bytes32 _h) onlymanyowners(_h) returns (bool) {
+        if (m_txs[_h].to != 0) {
+            m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data);
+            MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data);
+            delete m_txs[_h];
+            return true;
+        }
+    }
+    function clearPending() internal {
+        uint length = m_pendingIndex.length;
+        for (uint i = 0; i < length; ++i)
+            delete m_txs[m_pendingIndex[i]];
+        super.clearPending();
+    }
+    // // internally confirm transaction with all of the info. returns true iff confirmed good and executed.
+    // function confirmVerbose(bytes32 _h, address _to, uint _value, bytes _data) private onlymanyowners(_h) returns (bool) {
+    //     _to.call.value(_value)(_data);
+    //     MultiTransact("out", msg.sender, _h, _value, _to);
+    //     return true;
+    // }
+
+    // pending transactions we have at present.
+    mapping (bytes32 => Transaction) m_txs;
 }
