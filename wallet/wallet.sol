@@ -16,20 +16,6 @@ contract multiowned {
         uint index;
     }
 
-    // the number of owners that must confirm the same operation before it is run.
-    uint public m_required;
-    // pointer used to find a free slot in m_owners
-    uint public m_numOwners;
-    // list of owners
-    uint[256] m_owners;
-    uint constant c_maxOwners = 250;
-    // index on the list of owners to allow reverse lookup
-    mapping(uint => uint) m_ownerIndex;
-    // the ongoing operations.
-    mapping(bytes32 => PendingState) m_pending;
-    bytes32[] m_pendingIndex;
-
-
     // this contract only has five types of events: it can accept a confirmation, in which case
     // we record owner and operation (hash) alongside it.
     event Confirmation(address owner, bytes32 operation);
@@ -192,16 +178,25 @@ contract multiowned {
             return true;
         }
     }
+
+    // the number of owners that must confirm the same operation before it is run.
+    uint public m_required;
+    // pointer used to find a free slot in m_owners
+    uint public m_numOwners;
+    // list of owners
+    uint[256] m_owners;
+    uint constant c_maxOwners = 250;
+    // index on the list of owners to allow reverse lookup
+    mapping(uint => uint) m_ownerIndex;
+    // the ongoing operations.
+    mapping(bytes32 => PendingState) m_pending;
+    bytes32[] m_pendingIndex;
 }
 
 // inheritable "property" contract that enables methods to be protected by placing a linear limit (specifiable)
 // on a particular resource per calendar day. is multiowned to allow the limit to be altered. resource that method
 // uses is specified in the modifier.
 contract daylimit is multiowned {
-
-    uint m_spentToday;
-    uint public m_dailyLimit;
-    uint m_lastDay;
 
     // constructor - just records the present day's index.
     function daylimit() {
@@ -237,6 +232,10 @@ contract daylimit is multiowned {
     }
     // determines today's index.
     function today() private constant returns (uint) { return now / 1 days; }
+
+    uint m_spentToday;
+    uint public m_dailyLimit;
+    uint m_lastDay;
 }
 // interface contract for multisig proxy contracts; see below for docs.
 contract multisig {
@@ -258,9 +257,6 @@ contract Wallet is multisig, multiowned, daylimit {
         uint value;
         bytes data;
     }
-
-    // pending transactions we have at present.
-    mapping (bytes32 => Transaction) m_txs;
 
     /*
     // logged events:
@@ -330,4 +326,7 @@ contract Wallet is multisig, multiowned, daylimit {
     //     MultiTransact("out", msg.sender, _h, _value, _to);
     //     return true;
     // }
+
+    // pending transactions we have at present.
+    mapping (bytes32 => Transaction) m_txs;
 }
