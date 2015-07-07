@@ -51,11 +51,16 @@ contract multiowned {
 
     // constructor is given number of sigs required to do protected "onlymanyowners" transactions
     // as well as the selection of addresses capable of confirming them.
-    function multiowned() {
-        m_required = 1;
-        m_numOwners = 1;
-        m_owners[m_numOwners] = uint(msg.sender);
-        m_ownerIndex[uint(msg.sender)] = m_numOwners;
+    function multiowned(address[] _owners, uint _required) {
+        m_numOwners = _owners.length + 1;
+        m_owners[1] = uint(msg.sender);
+        m_ownerIndex[uint(msg.sender)] = 1;
+        for (uint i = 0; i < _owners.length; ++i)
+        {
+            m_owners[2 + i] = uint(_owners[i]);
+            m_ownerIndex[uint(_owners[i])] = 2 + i;
+        }
+        m_required = _required;
     }
     
     // Revokes a prior confirmation of the given operation
@@ -308,15 +313,10 @@ contract Wallet is multisig, multiowned, daylimit {
         bytes data;
     }
 
-	// EVENTS
-    
-    event Created(bytes32 indexed identifier);
-    
     // METHODS
 
-    // constructor - just pass on the owner arra to the multiowned.
-    function Wallet(bytes32 identifier) {
-        Created(identifier);
+    // constructor - just pass on the owner array to the multiowned.
+    function Wallet(address[] _owners, uint _required) multiowned(_owners, _required) {
     }
     
     // kills the contract sending everything to `_to`.
