@@ -84,6 +84,7 @@ contract multiowned {
         m_ownerIndex[uint(_to)] = ownerIndex;
         OwnerChanged(_from, _to);
     }
+    
     function addOwner(address _owner) onlymanyowners(sha3(msg.data, block.number)) external {
         if (isOwner(_owner)) return;
 
