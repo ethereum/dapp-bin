@@ -237,8 +237,9 @@ contract daylimit is multiowned {
 
 	// METHODS
 
-    // constructor - just records the present day's index.
-    function daylimit() {
+    // constructor - stores initial daily limit and records the present day's index.
+    function daylimit(uint _limit) {
+        m_dailyLimit = _limit;
         m_lastDay = today();
     }
     // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
@@ -316,8 +317,10 @@ contract Wallet is multisig, multiowned, daylimit {
 
     // METHODS
 
-    // constructor - just pass on the owner array to the multiowned.
-    function Wallet(address[] _owners, uint _required) multiowned(_owners, _required) {
+    // constructor - just pass on the owner array to the multiowned and
+    // the limit to daylimit
+    function Wallet(address[] _owners, uint _required, uint _daylimit)
+            multiowned(_owners, _required) daylimit(_daylimit) {
     }
     
     // kills the contract sending everything to `_to`.
