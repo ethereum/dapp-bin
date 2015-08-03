@@ -15,9 +15,9 @@ contract FixedFeeRegistrar is Registrar {
 
 	modifier onlyrecordowner(string _name) { if (m_record(_name).owner == msg.sender) _ }
 
-    function () {
-        msg.sender.send(msg.value);
-    }
+	function () {
+		msg.sender.send(msg.value);
+	}
 
 	function reserve(string _name) {
 	    Record rec = m_record(_name);
