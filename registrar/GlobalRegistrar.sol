@@ -1,7 +1,7 @@
 //sol
 
 contract NameRegister {
-	function addr(bytes32 _name) constant returns (address o_owner);
+	function addr(string _name) constant returns (address o_owner);
 	function name(address _owner) constant returns (string o_name);
 }
 
@@ -123,7 +123,7 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 	}
 
 	function disown(string _name) onlyrecordowner(_name) {
-		if (m_toName[m_toRecord[_name].primary] == _name)
+		if (stringsEqual(m_toName[m_toRecord[_name].primary], _name))
 		{
 			PrimaryChanged(_name, m_toRecord[_name].primary);
 			m_toName[m_toRecord[_name].primary] = "";
@@ -148,6 +148,18 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 	function setContent(string _name, bytes32 _content) onlyrecordowner(_name) {
 		m_toRecord[_name].content = _content;
 		Changed(_name);
+	}
+
+	function stringsEqual(string storage _a, string memory _b) internal returns (bool) {
+		bytes storage a = bytes(_a);
+		bytes memory b = bytes(_b);
+		if (a.length != b.length)
+			return false;
+		// @todo unroll this loop
+		for (uint i = 0; i < a.length; i ++)
+			if (a[i] != b[i])
+				return false;
+		return true;
 	}
 
 	function owner(string _name) constant returns (address) { return m_toRecord[_name].owner; }
