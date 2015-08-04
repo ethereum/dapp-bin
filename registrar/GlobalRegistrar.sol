@@ -112,7 +112,7 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 	}
 
 	function requiresAuction(string _name) internal returns (bool) {
-		return bytes(_name).length >= c_freeBytes;
+		return bytes(_name).length < c_freeBytes;
 	}
 
 	modifier onlyrecordowner(string _name) { if (m_toRecord[_name].owner == msg.sender) _ }
