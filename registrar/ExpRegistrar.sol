@@ -38,9 +38,9 @@ contract ExpRegistrar is Registrar {
 	
 	function reserve(string _name) {
 	    Record rec = m_record[_name];
-		if ((rec.owner == 0 && msg.value >= 1 ether) || (rec.owner != 0 && msg.value >= rec.price)) {
+		if ((rec.owner == 0 && msg.value >= 100 finney) || (rec.owner != 0 && msg.value >= rec.price)) {
 			if (rec.price > 0)
-				rec.owner.send(rec.price);
+				rec.owner.send(rec.price * 50 / 100);
 			else
 				rec.price = msg.value;
 			rec.price *= 10;
