@@ -49,6 +49,7 @@ contract ExpRegistrar is Registrar {
 		else if  (rec.owner != 0 && msg.value >= rec.price) {
 			rec.owner.send(rec.price * 50 / 100);
 			rec.price = 10 * msg.value;
+			rec.owner = msg.sender;
 			OwnerChanged(_name);
 		}
 	}
