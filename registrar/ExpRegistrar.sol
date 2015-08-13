@@ -38,13 +38,17 @@ contract ExpRegistrar is Registrar {
 	
 	function reserve(string _name) {
 	    Record rec = m_record[_name];
-		if ((rec.owner == 0 && msg.value >= 100 finney) || (rec.owner != 0 && msg.value >= rec.price)) {
-			if (rec.price > 0)
-				rec.owner.send(rec.price * 50 / 100);
-			else
-				rec.price = msg.value;
-			rec.price *= 10;
+		if (rec.owner == msg.sender) {
+			rec.price += 10 * msg.value;
+		}
+		else if (rec.owner == 0 && msg.value >= 100 finney) {
+			rec.price = 10 * msg.value;
 			rec.owner = msg.sender;
+			OwnerChanged(_name);
+		}
+		else if  (rec.owner != 0 && msg.value >= rec.price) {
+			rec.owner.send(rec.price * 50 / 100);
+			rec.price = 10 * msg.value;
 			OwnerChanged(_name);
 		}
 	}
@@ -80,6 +84,7 @@ contract ExpRegistrar is Registrar {
 	function subRegistrar(string _name) constant returns (address) { return m_record[_name].subRegistrar; }
 	function content(string _name) constant returns (bytes32) { return m_record[_name].content; }
 	function owner(string _name) constant returns (address) { return m_record[_name].owner; }
+	function price(string _name) constant returns (uint) { return m_record[_name].price; }
 	function name(address _addr) constant returns (string) { return m_reverse[uint160(_addr)]; }
 
 	string[2**160] m_reverse;
