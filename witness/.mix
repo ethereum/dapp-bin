@@ -1,0 +1,86 @@
+{
+	"applicationUrlEth": "",
+	"applicationUrlHttp": "",
+	"deployBlockNumber": "",
+	"deploymentAddresses": {},
+	"deploymentDir": "",
+	"files": [
+		{
+			"fileName": "contract.sol",
+			"title": "Witness"
+		},
+		{
+			"fileName": "index.html",
+			"title": "index.html"
+		}
+	],
+	"lastPackageDate": "",
+	"localPackageUrl": "",
+	"packageBase64": "",
+	"packageHash": "",
+	"registerContentHashBlockNumber": -1,
+	"registerContentHashTrHash": "",
+	"registerUrlBlockNumber": -1,
+	"registerUrlTrHash": "",
+	"title": "witness",
+	"states": [
+		{
+			"accounts": [
+				{
+					"address": "38f388fadf4a6a35c61c3f88194ec5ae162c8944",
+					"balance": {
+						"unit": 12,
+						"value": "1000000"
+					},
+					"name": "Account-38f3",
+					"secret": "cb73d9408c4720e230387d956eb0f829d8a4dd2c1055f96257167e14e7169074"
+				}
+			],
+			"blocks": [
+				{
+					"hash": "",
+					"number": -1,
+					"status": "pending",
+					"transactions": []
+				}
+			],
+			"contracts": [],
+			"miner": {
+				"address": "38f388fadf4a6a35c61c3f88194ec5ae162c8944",
+				"balance": {
+					"objectName": "",
+					"value": "1000000",
+					"unit": 12
+				},
+				"name": "Account-38f3",
+				"secret": "cb73d9408c4720e230387d956eb0f829d8a4dd2c1055f96257167e14e7169074"
+			},
+			"title": "Default",
+			"transactions": [
+				{
+					"contractId": "Witness",
+					"functionId": "Witness",
+					"gas": {
+						"value": "250000"
+					},
+					"gasAuto": true,
+					"gasPrice": {
+						"unit": 18,
+						"value": "100000"
+					},
+					"isContractCreation": true,
+					"isFunctionCall": true,
+					"label": "Contract.Contract()",
+					"parameters": {},
+					"saveStatus": true,
+					"sender": "cb73d9408c4720e230387d956eb0f829d8a4dd2c1055f96257167e14e7169074",
+					"value": {
+						"unit": 18,
+						"value": "0"
+					}
+				}
+			]
+		}
+	],
+	"defaultStateIndex": 0
+}
