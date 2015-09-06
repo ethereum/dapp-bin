@@ -1,0 +1,48 @@
+data channels[2**160](from, to, capacity, expiryCountdown, expiry)
+data channelCount
+event newChannel(from:address:indexed, to:address:indexed, capacity:uint256, expiryCountdown:uint256, id:uint256:indexed)
+event expiryCountdownStarts(id:uint256:indexed)
+event channelCloses(id:uint256:indexed, paid:uint256)
+
+def create_channel(from:address, to:address, capacity:uint256, expiryCountdown:uint256):
+    if msg.value != capacity:
+        send(msg.sender, msg.value)
+        ~stop()
+    id = self.channelCount
+    self.channels[id].from = from
+    self.channels[id].to = to
+    self.channels[id].capacity = capacity
+    self.channels[id].expiryCountdown = expiryCountdown
+    self.channels[id].expiry = 9999999999999999999999999999999
+    self.channelCount = id + 1
+    log(type=newChannel, from, to, capacity, expiryCountdown, id)
+    return(id:uint256)
+
+def start_countdown(id:uint256):
+    if self.channels[id].from == msg.sender:
+        self.channels[id].expiry = block.timestamp + self.channels[id].expiryCountdown
+        log(type=expiryCountdownStarts, id)
+
+def force_close_channel(id:uint256):
+    if block.timestamp >= self.channels[id].expiry:
+        if self.channels[id].from == msg.sender or self.channels[id].to == msg.sender:
+            send(self.channels[id].from, self.channels[id].capacity)
+            log(type=channelCloses, id, 0)
+            self.channels[id].from = 0
+            self.channels[id].to = 0
+            self.channels[id].capacity = 0
+            self.channels[id].expiryCountdown = 0
+            self.channels[id].expiry = 0
+
+def close_channel(id:uint256, value:uint256, v:uint256, r:uint256, s:uint256):
+    h = sha3(value)
+    signing_addr = ecrecover(h, v, r, s)
+    if signing_addr == self.channels[id].from and value >= 0 and value <= self.channels[id].capacity:
+        send(self.channels[id].from, self.channels[id].capacity - value)
+        send(self.channels[id].to, value)
+        log(type=channelCloses, id, value)
+        self.channels[id].from = 0
+        self.channels[id].to = 0
+        self.channels[id].capacity = 0
+        self.channels[id].expiryCountdown = 0
+        self.channels[id].expiry = 0

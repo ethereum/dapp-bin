@@ -1,0 +1,129 @@
+data sellOrders[2**100](seller, company, shares, currency, currencyAmount)
+data nextSellOrderId
+data buyOrders[2**100](buyer, company, shares, currency, currencyAmount)
+data nextBuyOrderId
+event NewSellOrder(id, seller:address, company:address:indexed, shares, currency:indexed, currencyAmount)
+event NewBuyOrder(id, buyer:address, company:address:indexed, shares, currency:indexed, currencyAmount)
+event SellOrderClaimed(id, seller:address, company:address:indexed, shares, currency:indexed, currencyAmount)
+event BuyOrderClaimed(id, buyer:address, company:address:indexed, shares, currency:indexed, currencyAmount)
+
+extern company: [authorizeLockup:[uint256,address]:_, coinBalanceOf:[address]:int256, getCurrentShareholdingsOf:[address]:int256, getLockedShareholdingsOf:[address]:int256, getShareholderMaxShares:[address]:uint256, getShareholderMinShares:[address]:uint256, getTotalIssued:[]:uint256, issueShares:[uint256,address]:_, lockupShares:[address,uint256]:bool, releaseLockedShares:[address,uint256,address]:bool, sendCoin:[uint256,address]:int256, sendShares:[uint256,address]:bool, setContactAuthorized:[address,bool]:_, setShareholderMaxShares:[int256,int256]:_, setShareholderMinShares:[int256,int256]:_]
+extern currency: [isApprovedOnceFor:[address,address]:uint256, approve:[address]:_, approveOnce:[address,uint256]:_, coinBalance:[]:int256, coinBalanceOf:[address]:int256, disapprove:[address]:_, isApproved:[address]:int256, sendCoin:[uint256,address]:bool, sendCoinFrom:[address,uint256,address]:bool]
+
+
+# Make a new sell order
+def mkSellOrder(company:address, shares:uint256, currency:address, currencyAmount:uint256):
+    if not company.lockupShares(msg.sender, shares):
+        return(-1)
+    id = self.nextSellOrderId
+    self.sellOrders[id].seller = msg.sender
+    self.sellOrders[id].company = company
+    self.sellOrders[id].shares = shares
+    self.sellOrders[id].currency = currency
+    self.sellOrders[id].currencyAmount = currencyAmount
+    self.nextSellOrderId = id + 1
+    log(type=NewSellOrder, id, seller, company, shares, currency, currencyAmount)
+    return(id)
+
+
+# Make a new buy order
+def mkBuyOrder(company:address, shares:uint256, currency:address, currencyAmount:uint256):
+    # Attempt to deposit coins failed
+    if not currency.sendCoinFrom(msg.sender, currencyAmount, self):
+        return(-1)
+    currentShares = company.getCurrentShareholdingsOf(msg.sender)
+    lockedShares = company.getLockedShareholdingsOf(msg.sender)
+    # The buyer cannot hold the number of shares that they are trying to buy
+    if company.getShareholderMaxShares(msg.sender) < currentShares + lockedShares + shares:
+        return(-1)
+    id = self.nextBuyOrderId
+    self.buyOrders[id].buyer = msg.sender
+    self.buyOrders[id].company = company
+    self.buyOrders[id].shares = shares
+    self.buyOrders[id].currency = currency
+    self.buyOrders[id].currencyAmount = currencyAmount
+    self.nextBuyOrderId = id + 1
+    log(type=NewBuyOrder, id, buyer, company, shares, currency, currencyAmount)
+    return(id)
+
+
+# Claim a sell order
+def claimSellOrder(orderId):
+    seller = self.sellOrders[orderId].seller
+    company = self.sellOrders[orderId].company
+    shares = self.sellOrders[orderId].shares
+    currency = self.sellOrders[orderId].currency
+    currencyAmount = self.sellOrders[orderId].currencyAmount
+    # If the order does not exist, return fail
+    if not seller:
+        return(0:bool)
+    # If not enough money, then fail
+    if currency.coinBalanceOf(msg.sender) < currencyAmount:
+        return(0:bool)
+    # If not authorized to withdraw, then fail
+    if currency.isApprovedOnceFor(msg.sender, self) < currencyAmount:
+        return(0:bool)
+    # Execute both trades atomically
+    if not company.releaseLockedShares(seller, shares, msg.sender):
+        return(0:bool)
+    currency.sendCoinFrom(msg.sender, currencyAmount, seller)
+    log(type=SellOrderClaimed, orderId, seller, company, shares, currency, currencyAmount)
+    # Clear storage
+    self._clearSellOrder(orderId)
+    return(1:bool)
+
+
+# Claim a buy order
+def claimBuyOrder(orderId):
+    buyer = self.buyOrders[orderId].buyer
+    company = self.buyOrders[orderId].company
+    shares = self.buyOrders[orderId].shares
+    currency = self.buyOrders[orderId].currency
+    currencyAmount = self.buyOrders[orderId].currencyAmount
+    # Execute both trades atomically
+    if not company.lockupShares(msg.sender, shares):
+        return(0:bool)
+    company.releaseLockedShares(msg.sender, shares, buyer)
+    currency.sendCoin(currencyAmount, msg.sender)
+    log(type=BuyOrderClaimed, orderId, buyer, company, shares, currency, currencyAmount)
+    # Clear storage
+    self._clearBuyOrder(orderId)
+    return(1:bool)
+
+
+# Clear a sell order
+def clearSellOrder(orderId):
+    seller = self.sellOrders[orderId].seller
+    company = self.buyOrders[orderId].company
+    shares = self.sellOrders[orderId].shares
+    company.releaseLockedShares(seller, shares, seller)
+    self._clearSellOrder(orderId)
+
+
+# Clear a buy order
+def clearBuyOrder(orderId):
+    buyer = self.buyOrders[orderId].buyer
+    currency = self.buyOrders[orderId].currency
+    currencyAmount = self.buyOrders[orderId].currencyAmount
+    currency.sendCoin(currencyAmount, buyer)
+    self._clearBuyOrder(orderId)
+
+
+# Internal helper method for clearing sell orders from storage
+def _clearSellOrder(orderId):
+    if msg.sender == self.sellOrders[orderId].seller or msg.sender == self:
+        self.sellOrders[orderId].seller = 0
+        self.sellOrders[orderId].company = 0
+        self.sellOrders[orderId].shares = 0
+        self.sellOrders[orderId].currency = 0
+        self.sellOrders[orderId].currencyAmount = 0
+        
+
+# Internal helper method for clearing buy orders from storage
+def _clearBuyOrder(orderId):
+    if msg.sender == self.buyOrders[orderId].buyer or msg.sender == self:
+        self.buyOrders[orderId].buyer = 0
+        self.buyOrders[orderId].company = 0
+        self.buyOrders[orderId].shares = 0
+        self.buyOrders[orderId].currency = 0
+        self.buyOrders[orderId].currencyAmount = 0

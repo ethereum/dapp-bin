@@ -1,0 +1,48 @@
+data records[](owner, address, content, sub)
+
+event Changed(name:string:indexed)
+
+def reserve(_name:string):
+    if not self.records[sha3(_name:str)].owner:
+        self.records[sha3(_name:str)].owner = msg.sender
+        log(type=Changed, _name)
+        return(1:bool)
+    return(0:bool)
+
+def owner(_name:string):
+    return(self.records[sha3(_name:str)].owner:address)
+
+def transfer(_name:string, _newOwner:address):
+    if self.records[sha3(_name:str)].owner == msg.sender:
+        log(type=Changed, _name)
+        self.records[sha3(_name:str)].owner = _newOwner
+
+def setAddr(_name:string, _a:address):
+    if self.records[sha3(_name:str)].owner == msg.sender:
+        log(type=Changed, _name)
+        self.records[sha3(_name:str)].address = _a
+
+def addr(_name:string):
+    return(self.records[sha3(_name:str)].address:address)
+
+def setContent(_name:string, _content:bytes32):
+    if self.records[sha3(_name:str)].owner == msg.sender:
+        log(type=Changed, _name)
+        self.records[sha3(_name:str)].content = _content
+
+def content(_name:string):
+    return(self.records[sha3(_name:str)].content:bytes32)
+
+def setSubRegistrar(_name:string, _subRegistrar:address):
+    if self.records[sha3(_name:str)].owner == msg.sender:
+        log(type=Changed, _name)
+        self.records[sha3(_name:str)].sub = _subRegistrar
+
+def subRegistrar(_name:string):
+    return(self.records[sha3(_name:str)].sub:address)
+
+def disown(_name:string):
+    if self.records[sha3(_name:str)].owner == msg.sender:
+        log(type=Changed, _name)
+        self.records[sha3(_name:str)].owner = 0
+

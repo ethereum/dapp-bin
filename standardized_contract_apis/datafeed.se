@@ -1,0 +1,13 @@
+data data[]
+data owner
+
+def init():
+    self.owner = msg.sender
+
+def set(k:bytes32, v):
+    if msg.sender == self.owner:
+        self.data[k] = v
+
+def get(k:bytes32):
+    return(self.data[k])
+
