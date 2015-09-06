@@ -1,0 +1,142 @@
+<!doctype>
+<html>
+<head>
+<script>
+//var web3 = require('web3');
+//web3.setProvider(new web3.providers.AutoProvider());
+
+//TODO: this should just be:
+// import("Config");
+// import("Gavsino");
+var Config = web3.eth.contractFromAbi([{"constant":false,"inputs":[],"name":"kill","outputs":[]},{"constant":true,"inputs":[{"name":"service","type":"uint256"}],"name":"lookup","outputs":[{"name":"a","type":"address"}]},{"constant":false,"inputs":[{"name":"id","type":"uint256"},{"name":"service","type":"address"}],"name":"register","outputs":[]},{"constant":false,"inputs":[{"name":"id","type":"uint256"}],"name":"unregister","outputs":[]}]);
+var Gavsino = web3.eth.contractFromAbi([{"constant":true,"inputs":[],"name":"totalShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"wei","type":"uint256"}],"name":"sharesValue","outputs":[{"name":"shares","type":"uint256"}]},{"constant":false,"inputs":[],"name":"buyIn","outputs":[]},{"constant":false,"inputs":[{"name":"shares","type":"uint256"}],"name":"cashOut","outputs":[]},{"constant":true,"inputs":[{"name":"key","type":"hash256"},{"name":"bet","type":"hash256"}],"name":"winningsWithKey","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"equity","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[],"name":"sharesHeld","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"pIn256","type":"uint256"},{"name":"key","type":"hash256"}],"name":"bet","outputs":[]},{"constant":true,"inputs":[],"name":"valueOfShares","outputs":[{"name":"r","type":"uint256"}]},{"constant":true,"inputs":[{"name":"bet","type":"hash256"}],"name":"winnings","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"bet","type":"hash256"}],"name":"claim","outputs":[]},{"constant":false,"inputs":[{"name":"key","type":"hash256"}],"name":"recycle","outputs":[]},{"constant":true,"inputs":[{"name":"s","type":"uint256"}],"name":"valueOf","outputs":[{"name":"r","type":"uint256"}]},{"constant":false,"inputs":[],"name":"empty","outputs":[]}]);
+
+var theGavsino = Gavsino(Config().lookup(2));
+
+var tickets = [];
+
+function refreshHoldings() {
+	document.getElementById("myshares").innerHTML = theGavsino.sharesHeld();
+	document.getElementById("totalshares").innerHTML = theGavsino.totalShares();
+	document.getElementById("equity").innerHTML = web3.toEth(web3.fromDecimal(theGavsino.equity() + ''));
+	document.getElementById("mysharesvalue").innerHTML = web3.toEth(web3.fromDecimal(theGavsino.valueOfShares() + ''));
+	sharesamountChanged();
+}
+
+function refreshTickets() {
+//	console.log("refreshing...");
+	var uiBets = '';
+//		console.log("number is " + number);
+	for (var i in tickets) { var t = tickets[i];
+		uiBets +=
+			'<div>' +
+			'<span class="amount">' + web3.toEth(t.amount) + '</span>' +
+			' @ ' +
+			'<span class="prob">' + web3.toDecimal(t.p) + ' in 256</span>' +
+			' : ' +
+			'<span id="' + t.bet + '" class="status">' + (
+				t.claimed ? 'won ' + web3.toEth(t.claimed) :
+				t.recycled ? 'lost' :
+				'pending...'
+				) + '</span>' +
+			'</div>'; }
+	document.getElementById("bets").innerHTML = uiBets;
+	for (var i in tickets)
+	{
+		var t = tickets[i];
+		if (+t.number < +web3.eth.number && !t.recycled && !t.claimed)
+		{
+			console.log("pending..." + t.bet);
+			var w = theGavsino.winnings(t.bet);
+			var e = document.getElementById(t.bet);
+			if (!t.recycled && !t.claimed)
+			{
+				console.log("updating..." + t.bet + "; winnings: " + w);
+				if (w > 0)
+				{
+					theGavsino.claim(t.bet);
+					t.claimed = w;
+					e.innerHTML = 'claiming ' + web3.toEth(w) + "!";
+				}
+				else
+				{
+					theGavsino.claim(t.bet);
+					t.recycled = true;
+					e.innerHTML = "refunding 0.5%";
+				}
+			}
+		}
+	}
+}
+
+function sharesamountChanged() {
+	var amount = web3.fromDecimal(document.getElementById("sharesamount").value.toString() + '000000000000000');
+//	console.log("amount: " + amount);
+	document.getElementById("sharesofvalue").innerHTML = theGavsino.sharesValue(amount);
+}
+
+function makeid() {
+    var text = "0x";
+    var possible = "0123456789abcdef";
+    for (var i = 0; i < 64; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+    return text;
+}
+	
+function newTicket(amount, p) {
+	var bet = makeid();
+	var amount = web3.fromDecimal(amount.toString() + '000000000000000');
+	var key = web3.sha3(bet)
+	p = +p < 1 ? 1 : +p > 255 ? 255 : p;
+	var ticket = { 'amount': amount, 'p': web3.fromDecimal(p), 'key': key, 'bet': bet, 'number': web3.eth.number, 'claimed': null };
+	tickets.push(ticket);
+	theGavsino.value(amount).bet(+p, key);
+	refreshTickets();
+}
+
+function buyIn(amountineth) {
+	amount = web3.fromDecimal(amountineth.toString() + '000000000000000');
+	theGavsino.value(amount).buyIn();
+}
+
+function cashOut(shares) {
+	theGavsino.cashOut(shares);
+}
+
+var w = web3.eth.watch({'address': theGavsino.address});
+w.changed(function(d) {
+	refreshHoldings();
+	refreshTickets();
+});
+
+</script>
+<title>Gavsino - The Ubiquitous Casino</title>
+</head>
+<body>
+<h1>Gavsino - The Ubiquitous Casino</h1>
+<div>
+<div style="float: right; background: #fee; width: 15em; height: 30em">
+<h2>Bets</h2>
+<div id="bets">
+</div>
+</div>
+<div style="">
+<h2>Shares</h2>
+<div>Shares held: <span id="myshares"></span> shares (worth <span id="mysharesvalue"></span>) of <span id="totalshares"></span> (worth <span id="equity"></span>).</div>
+<div>Amount: <input id="sharesamount" value="1"></input> finney = <span id="sharesofvalue"></span> shares.</div>
+<div><button id="buyIn" onClick="buyIn(document.getElementById('sharesamount').value)">buy in</button><button id="cashOut" onClick="cashOut(document.getElementById('sharesofvalue').innerHTML)">cash out</button></div>
+<h2>Bet</h2>
+<div>Amount: <input id="amount" value="1"></input> finney</div>
+<div>Probability: <input id="pIn256" value="128"></input> / 256</div>
+<div><button id="bet" onClick="newTicket(document.getElementById('amount').value, document.getElementById('pIn256').value)">bet</button></div>
+</div>
+</div>
+<script>
+document.getElementById('sharesamount').oninput = function() { console.log("HELLO"); sharesamountChanged(); };
+// TODO: Remove once JS initial event is fixed.
+refreshHoldings();
+refreshTickets();
+//web3.eth.watch().changed(refreshTickets);
+</script>
+</body>
+</html>

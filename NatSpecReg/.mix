@@ -1,0 +1,101 @@
+{
+	"applicationUrlEth": "",
+	"applicationUrlHttp": "",
+	"deploymentAddresses": [],
+	"deploymentDir": "",
+	"files": [
+		"contract.sol",
+		"index.html"
+	],
+	"packageBase64": "",
+	"packageHash": "",
+	"title": "NatSpecReg",
+	"states": [
+		{
+			"accounts": [
+				{
+					"balance": {
+						"unit": 12,
+						"value": "1000000"
+					},
+					"name": "Account-cb73",
+					"secret": "cb73d9408c4720e230387d956eb0f829d8a4dd2c1055f96257167e14e7169074"
+				}
+			],
+			"title": "Default",
+			"transactions": [
+				{
+					"contractId": "Config",
+					"functionId": "Config",
+					"gas": {
+						"value": "250000"
+					},
+					"gasPrice": {
+						"unit": 18,
+						"value": "100000"
+					},
+					"parameters": {},
+					"stdContract": true,
+					"url": "qrc:///stdc/std.sol",
+					"value": {
+						"unit": 18,
+						"value": "0"
+					}
+				},
+				{
+					"contractId": "NameReg",
+					"functionId": "NameReg",
+					"gas": {
+						"value": "250000"
+					},
+					"gasPrice": {
+						"unit": 18,
+						"value": "100000"
+					},
+					"parameters": {},
+					"stdContract": true,
+					"url": "qrc:///stdc/std.sol",
+					"value": {
+						"unit": 18,
+						"value": "0"
+					}
+				},
+				{
+					"contractId": "NatSpecReg",
+					"functionId": "NatSpecReg",
+					"gas": {
+						"value": "250000"
+					},
+					"gasPrice": {
+						"unit": 18,
+						"value": "100000"
+					},
+					"parameters": {},
+					"stdContract": false,
+					"value": {
+						"unit": 18,
+						"value": "0"
+					}
+				},
+				{
+					"contractId": "NatSpecReg",
+					"functionId": "NatSpecReg",
+					"gas": {
+						"value": "250000"
+					},
+					"gasPrice": {
+						"unit": 18,
+						"value": "100000"
+					},
+					"parameters": {},
+					"stdContract": false,
+					"value": {
+						"unit": 18,
+						"value": "0"
+					}
+				}
+			]
+		}
+	],
+	"defaultStateIndex": 0
+}

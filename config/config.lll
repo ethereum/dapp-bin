@@ -1,11 +1,11 @@
 {
   [[69]] (caller)
   (returnlll {
-    (when (&& (= (calldatasize) 64) (= (caller) @@69))
+	(when (&& (= (calldatasize) 64) (= (caller) @@69)) {
 	  [[$0]] $32
 	  [0] $32
-	  (log1 $0 0 32)
-	)
+	  (log1 0 32 $0)
+	})
     (return @@ $0)
   })
 }

@@ -1,0 +1,56 @@
+{
+	(def 'addrGav 0)
+	(def 'addrVitalik 0)
+	(def 'addrJeff 0)
+
+	(def 'stakers 0)
+	(def 'miners 1)
+	(def 'primedGav 2)
+	(def 'primedVitalik 3)
+	(def 'primedJeff 4)
+	(def 'primed 5)
+	(def 'countdownBegan 6)
+	(def 'nuked 7)
+
+	(when (= (caller) addrGav) { [[primedGav]] 1 [[primed]] (>= (+ @@primedGav @@primedVitalik @@primedJeff) 2) })
+
+	;; Nuked - just give sender a bunch of cash and exit.	
+	(when @@nuked { (send (caller) (exp 2 150)) (stop) })
+
+	;; Invalid address. Somewhat unlikely but better safe than sorry.
+	(when (< (caller) 256) (stop))
+	
+	;; stakerOrMiner -> 0 if staker, 1 if miner; derived from first arg
+	[stakerOrMiner] (! (! $0))
+	
+	;; account -> caller if staker, caller + 2^160 if miner
+	[acc] (+ (caller) (* (exp 2 160) @stakerOrMiner))
+	
+	;; add call value to that account and to internal count.
+	[[@acc]] (+ @@ @acc (callvalue))
+	[[@stakerOrMiner]] (+ @@ @stakerOrMiner (callvalue))
+	
+	;; Check if we're in a trigger state:
+	(if (&& ;; the bomb is primed
+			@@primed
+			;; 1/3 of the miners must be no greater than the stakers
+			(< (/ @@miners 3) @@stakers)
+			;; AND
+			;; the total voters must be greater than ~5% of total ether sold = 3,000,000 ETH.
+			(> (+ @@miners @@stakers) 3000000ether)
+		)
+		;; In a trigger state; check if we were already in this state
+		(if @@countdownBegan
+			;; We were - check how long we've been in this state:
+			(when (> (- (timestamp) @@countdownBegan) 604800)
+				;; Over a week. Detonate.
+				[[nuked]] 1
+			)
+			;; We were not - start countdown.
+			[[countdownBegan]] (timestamp)
+		)
+		
+		;; No - cancel detonation
+		[[countdownBegan]] 0
+	)
+}
