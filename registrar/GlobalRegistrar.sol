@@ -1,30 +1,30 @@
 //sol
 
 contract NameRegister {
-	function addr(bytes32 _name) constant returns (address o_owner);
-	function name(address _owner) constant returns (bytes32 o_name);
+	function addr(string _name) constant returns (address o_owner);
+	function name(address _owner) constant returns (string o_name);
 }
 
 contract Registrar is NameRegister {
-	event Changed(bytes32 indexed name);
-	event PrimaryChanged(bytes32 indexed name, address indexed addr);
+	event Changed(string indexed name);
+	event PrimaryChanged(string indexed name, address indexed addr);
 
-	function owner(bytes32 _name) constant returns (address o_owner);
-	function addr(bytes32 _name) constant returns (address o_address);
-	function subRegistrar(bytes32 _name) constant returns (address o_subRegistrar);
-	function content(bytes32 _name) constant returns (bytes32 o_content);
+	function owner(string _name) constant returns (address o_owner);
+	function addr(string _name) constant returns (address o_address);
+	function subRegistrar(string _name) constant returns (address o_subRegistrar);
+	function content(string _name) constant returns (bytes32 o_content);
 	
-	function name(address _owner) constant returns (bytes32 o_name);
+	function name(address _owner) constant returns (string o_name);
 }
 
 contract AuctionSystem {
-	event AuctionEnded(bytes32 indexed _name, address _winner);
-	event NewBid(bytes32 indexed _name, address _bidder, uint _value);
+	event AuctionEnded(string indexed _name, address _winner);
+	event NewBid(string indexed _name, address _bidder, uint _value);
 
 	/// Function that is called once an auction ends.
-	function onAuctionEnd(bytes32 _name) internal;
+	function onAuctionEnd(string _name) internal;
 
-	function bid(bytes32 _name, address _bidder, uint _value) internal {
+	function bid(string _name, address _bidder, uint _value) internal {
 		var auction = m_auctions[_name];
 		if (auction.endDate > 0 && now > auction.endDate)
 		{
@@ -55,7 +55,7 @@ contract AuctionSystem {
 		uint sumOfBids;
 		uint endDate;
 	}
-	mapping (bytes32 => Auction) m_auctions;
+	mapping(string => Auction) m_auctions;
 }
 
 contract GlobalRegistrar is Registrar, AuctionSystem {
@@ -64,7 +64,6 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		address primary;
 		address subRegistrar;
 		bytes32 content;
-		uint value;
 		uint renewalDate;
 	}
 
@@ -75,44 +74,56 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		// TODO: Populate with hall-of-fame.
 	}
 
-	function onAuctionEnd(bytes32 _name) internal {
+	function() {
+		// prevent people from just sending funds to the registrar
+		__throw();
+	}
+
+	function onAuctionEnd(string _name) internal {
 		var auction = m_auctions[_name];
 		var record = m_toRecord[_name];
 		if (record.owner != 0)
 			record.owner.send(auction.sumOfBids - auction.highestBid / 100);
 		else
 			auction.highestBidder.send(auction.highestBid - auction.secondHighestBid);
+		record.renewalDate = now + c_renewalInterval;
 		record.owner = auction.highestBidder;
 		Changed(_name);
 	}
 
-	function reserve(bytes32 _name) external {
+	function reserve(string _name) external {
+		if (bytes(_name).length == 0)
+			__throw();
 		bool needAuction = requiresAuction(_name);
-		if (needAuction && now < m_toRecord[_name].renewalDate)
-			return;
 		if (needAuction)
-			bid(_name, msg.sender, msg.value);
-		else if (m_toRecord[_name].owner == 0)
 		{
+			if (now < m_toRecord[_name].renewalDate)
+				__throw();
+			bid(_name, msg.sender, msg.value);
+		}
+		else
+		{
+			Record record = m_toRecord[_name];
+			if (record.owner != 0)
+				__throw();
 			m_toRecord[_name].owner = msg.sender;
 			Changed(_name);
 		}
 	}
 
-	function requiresAuction(bytes32 _name) internal returns (bool) {
-		uint shift = 2**(32 - c_freeBytes);
-		return (uint(_name) / shift) * shift == uint(_name);
+	function requiresAuction(string _name) internal returns (bool) {
+		return bytes(_name).length < c_freeBytes;
 	}
 
-	modifier onlyrecordowner(bytes32 _name) { if (m_toRecord[_name].owner == msg.sender) _ }
+	modifier onlyrecordowner(string _name) { if (m_toRecord[_name].owner == msg.sender) _ }
 
-	function transfer(bytes32 _name, address _newOwner) onlyrecordowner(_name) {
+	function transfer(string _name, address _newOwner) onlyrecordowner(_name) {
 		m_toRecord[_name].owner = _newOwner;
 		Changed(_name);
 	}
 
-	function disown(bytes32 _name) onlyrecordowner(_name) {
-		if (m_toName[m_toRecord[_name].primary] == _name)
+	function disown(string _name) onlyrecordowner(_name) {
+		if (stringsEqual(m_toName[m_toRecord[_name].primary], _name))
 		{
 			PrimaryChanged(_name, m_toRecord[_name].primary);
 			m_toName[m_toRecord[_name].primary] = "";
@@ -121,7 +132,7 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		Changed(_name);
 	}
 
-	function setAddress(bytes32 _name, address _a, bool _primary) onlyrecordowner(_name) {
+	function setAddress(string _name, address _a, bool _primary) onlyrecordowner(_name) {
 		m_toRecord[_name].primary = _a;
 		if (_primary)
 		{
@@ -130,21 +141,38 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 		}
 		Changed(_name);
 	}
-	function setSubRegistrar(bytes32 _name, address _registrar) onlyrecordowner(_name) {
+	function setSubRegistrar(string _name, address _registrar) onlyrecordowner(_name) {
 		m_toRecord[_name].subRegistrar = _registrar;
 		Changed(_name);
 	}
-	function setContent(bytes32 _name, bytes32 _content) onlyrecordowner(_name) {
+	function setContent(string _name, bytes32 _content) onlyrecordowner(_name) {
 		m_toRecord[_name].content = _content;
 		Changed(_name);
 	}
 
-	function owner(bytes32 _name) constant returns (address) { return m_toRecord[_name].owner; }
-	function addr(bytes32 _name) constant returns (address) { return m_toRecord[_name].primary; }
-	function subRegistrar(bytes32 _name) constant returns (address) { return m_toRecord[_name].subRegistrar; }
-	function content(bytes32 _name) constant returns (bytes32) { return m_toRecord[_name].content; }
-	function name(address _owner) constant returns (bytes32 o_name) { return m_toName[_owner]; }
+	function stringsEqual(string storage _a, string memory _b) internal returns (bool) {
+		bytes storage a = bytes(_a);
+		bytes memory b = bytes(_b);
+		if (a.length != b.length)
+			return false;
+		// @todo unroll this loop
+		for (uint i = 0; i < a.length; i ++)
+			if (a[i] != b[i])
+				return false;
+		return true;
+	}
 
-	mapping (address => bytes32) m_toName;
-	mapping (bytes32 => Record) m_toRecord;
+	function owner(string _name) constant returns (address) { return m_toRecord[_name].owner; }
+	function addr(string _name) constant returns (address) { return m_toRecord[_name].primary; }
+	function subRegistrar(string _name) constant returns (address) { return m_toRecord[_name].subRegistrar; }
+	function content(string _name) constant returns (bytes32) { return m_toRecord[_name].content; }
+	function name(address _addr) constant returns (string o_name) { return m_toName[_addr]; }
+
+	function __throw() internal {
+		// workaround until we have "throw"
+		uint[] x; x[1];
+	}
+
+	mapping (address => string) m_toName;
+	mapping (string => Record) m_toRecord;
 }
