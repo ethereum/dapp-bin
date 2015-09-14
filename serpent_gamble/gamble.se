@@ -1,0 +1,83 @@
+data owner
+data curseed
+data curseedExpiry
+data bets[2**100](bettor, bettor_key, potential_winnings, prob_milli)
+data numBets
+data depositLocked
+
+
+def init():
+    self.owner = msg.sender
+
+
+def get_curseed():
+    return(self.curseed:bytes32)
+
+
+# Administrator method: supply the value for the old seed, process
+# winnings and add a new seed
+def set_curseed(old_value:bytes32, new_seed:bytes32):
+    # Only owner can do this
+    if msg.sender != self.owner:
+        return(0:bool)
+    # Must supply result for previous sha3
+    if old_value != sha3(self.curseed) and self.curseed != 0:
+        return(0:bool)
+    i = 0
+    numBets = self.numBets
+    # 2**256 divided by 1000
+    DIVCONST = 115792089237316195423570985008687907853269984665640564039457584007913129639
+    # Run through bets, process payouts
+    while i < numBets:
+        rnd = ~div(sha3([old_value, self.bets[i].bettor_key]:arr), DIVCONST)
+        if rnd < self.bets[i].prob_milli:
+            send(self.bets[i].bettor, self.bets[i].potential_winnings)
+        self.bets[i].bettor = 0
+        i += 1
+    self.numBets = 0
+    # Set the new seed hash, and a 2-day deadline for providing the next value
+    self.curseed = new_seed
+    self.curseedExpiry = block.timestamp + 86400 * 2
+    return(1:bool)
+
+
+# If the value behind the curseed hash has not been revealed within 2 days
+def emergency_withdraw():
+    if block.timestamp <= self.curseedExpiry:
+        return(0:bool)
+    i = 0
+    numBets = self.numBets
+    while i < numBets:
+        send(self.bets[i].bettor, self.bets[i].potential_winnings * self.bets[i].prob_milli / 1000)
+        self.bets[i].bettor = 0
+        i += 1
+    # Donate all remaining funds to the Ethereum Foundation
+    suicide(0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae)
+
+
+# Make a bet
+def bet(bettor_key:bytes32, prob_milli):
+    # Maximum 100 bets to save on gas
+    if self.numBets >= 100:
+        send(msg.sender, msg.value)
+        return(-1)
+    potential_winnings = msg.value * 1000 / prob_milli
+    # Do we have enough to pay for the winnings?
+    if self.balance - self.depositLocked < potential_winnings:
+        send(msg.sender, msg.value)
+        return(-2)
+    # Lock up the deposit which would be used to pay winnings
+    self.depositLocked += potential_winnings
+    # Register the bet
+    betIndex = self.numBets
+    self.bets[betIndex].bettor = msg.sender 
+    self.bets[betIndex].bettor_key = bettor_key
+    self.bets[betIndex].potential_winnings = potential_winnings
+    self.bets[betIndex].prob_milli = prob_milli
+    self.numBets = betIndex + 1
+    return(betIndex)
+
+
+# Owner withdraw profits (deposit simply by sending ether to the contract)
+def withdraw():
+    send(self.owner, self.balance - self.depositLocked)
