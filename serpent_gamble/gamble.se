@@ -4,6 +4,8 @@ data curseedExpiry
 data bets[2**100](bettor, bettor_key, potential_winnings, prob_milli)
 data numBets
 data depositLocked
+event Bet(bettor:address, value:uint256, prob_milli:uint256)
+event NewSeed()
 
 
 def init():
@@ -38,6 +40,7 @@ def set_curseed(old_value:bytes32, new_seed:bytes32):
     # Set the new seed hash, and a 2-day deadline for providing the next value
     self.curseed = new_seed
     self.curseedExpiry = block.timestamp + 86400 * 2
+    log(type=NewSeed)
     return(1:bool)
 
 
@@ -75,6 +78,7 @@ def bet(bettor_key:bytes32, prob_milli):
     self.bets[betIndex].potential_winnings = potential_winnings
     self.bets[betIndex].prob_milli = prob_milli
     self.numBets = betIndex + 1
+    log(type=Bet, msg.sender, msg.value, prob_milli)
     return(betIndex)
 
 

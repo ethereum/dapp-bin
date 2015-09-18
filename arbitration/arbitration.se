@@ -1,0 +1,77 @@
+data contracts[2**100](value, recipientA, recipientB, arbiters[10000], numArbiters, votedMask, votesForA, votesForB, arbiterFee)
+data nextContractID
+event NewContract(value:uint256, recipientA:address:indexed, recipientB:address:indexed, arbiters:address[], arbiterFee:uint256, id:uint256)
+event PaidOut(id: uint256, recipient:address)
+
+def mk_contract(recipientA:address, recipientB:address, arbiters:address[], arbiterFee:uint256):
+    # Make sure we have enough funds to pay arbiters
+    if msg.value < arbiterFee:
+        send(msg.sender, msg.value)
+        return(-1)
+    id = self.nextContractID
+    self.contracts[id].value = msg.value - arbiterFee
+    self.contracts[id].recipientA = recipientA
+    self.contracts[id].recipientB = recipientB
+    i = 0
+    while i < len(arbiters):
+        self.contracts[id].arbiters[i] = arbiters[i]
+        i += 1
+    self.contracts[id].numArbiters = len(arbiters)
+    self.contracts[id].arbiterFee = arbiterFee
+    self.nextContractID = id + 1
+    log(type=NewContract, msg.value - arbiterFee, recipientA, recipientB, arbiters, arbiterFee)
+    return(id)
+
+def vote(id, voteForA:bool):
+    myArbiterIndex = -1
+    i = 0
+    while i < self.contracts[id].numArbiters:
+        if self.contracts[id].arbiters[i] == msg.sender:
+            myArbiterIndex = i
+        i += 1
+    # Not an arbiter for this contract
+    if myArbiterIndex == -1:
+        return(0:bool)
+    myArbiterMask = 2**myArbiterIndex
+    # Already voted
+    if myArbiterMask & self.contracts[id].votedMask:
+        return(0:bool)
+    done = 0
+    # Add to the voted mask
+    self.contracts[id].votedMask = self.contracts[id].votedMask | myArbiterMask
+    # Are there enough votes for either A or B?
+    if voteForA:
+        self.contracts[id].votesForA += 1
+        if self.contracts[id].votesForA * 2 >= self.contracts[id].numArbiters:
+            done = 1
+    else:
+        self.contracts[id].votesForB += 1
+        if self.contracts[id].votesForB * 2 >= self.contracts[id].numArbiters:
+            done = 2
+    # If so, then pay out
+    if done:
+        # Pay out arbiters
+        i = 0
+        arbitersVoted = self.contracts[id].votesForA + self.contracts[id].votesForB
+        fee = self.contracts[id].arbiterFee / arbitersVoted
+        while i < self.contracts[id].numArbiters:
+            if 2**i & self.contracts[id].votedMask:
+                send(self.contracts[id].arbiters[i], fee)
+            i += 1
+        recipient = if(done == 1, self.contracts[id].recipientA, self.contracts[id].recipientB)
+        send(recipient, self.contracts[id].value)
+        log(type=PaidOut, id, recipient)
+        # Some hygiene, to reduce blockchain bloat and save on gas fees
+        self.contracts[id].value = 0
+        self.contracts[id].recipientA = 0
+        self.contracts[id].recipientB = 0
+        i = 0
+        while i < self.contracts[id].numArbiters:
+            self.contracts[id].arbiters[i] = 0
+            i += 1
+        self.contracts[id].numArbiters = 0
+        self.contracts[id].votedMask = 0
+        self.contracts[id].votesForA = 0
+        self.contracts[id].votesForB = 0
+        self.contracts[id].arbiterFee = 0
+    return(1:bool)
