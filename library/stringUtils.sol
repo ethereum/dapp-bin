@@ -29,13 +29,13 @@ library StringUtils {
     {
     	bytes memory a = bytes(_a);
         bytes memory b = bytes(_b);
-        uint subindex = 0;
     	if(a.length < 1 || b.length < 1 || (b.length > a.length)) 
     		return -1;
     	else if(a.length > (2**128 -1)) // since we have to be able to return -1 (if the char isn't found or input error), this function must return an "int" type with a max length of (2^128 - 1)
     		return -1;									
     	else
     	{
+    		uint subindex = 0;
     		for (uint i = 0; i < a.length; i ++)
     		{
     			if (a[i] == b[0]) // found the first char of b
