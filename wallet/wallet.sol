@@ -182,7 +182,7 @@ contract multiowned {
         }
     }
 
-    function reorganizeOwners() private returns (bool) {
+    function reorganizeOwners() private {
         uint free = 1;
         while (free < m_numOwners)
         {
