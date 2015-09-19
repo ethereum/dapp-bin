@@ -28,7 +28,7 @@ library StringUtils {
     function indexOf(string _a, string _b) returns (int) // _a = string to search, _b = string we want to find
     {
     	bytes memory a = bytes(_a);
-        bytes memory b = bytes(_b);
+    	bytes memory b = bytes(_b);
     	if(a.length < 1 || b.length < 1 || (b.length > a.length)) 
     		return -1;
     	else if(a.length > (2**128 -1)) // since we have to be able to return -1 (if the char isn't found or input error), this function must return an "int" type with a max length of (2^128 - 1)
