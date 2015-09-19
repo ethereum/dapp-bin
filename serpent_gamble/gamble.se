@@ -85,3 +85,13 @@ def bet(bettor_key:bytes32, prob_milli):
 # Owner withdraw profits (deposit simply by sending ether to the contract)
 def withdraw():
     send(self.owner, self.balance - self.depositLocked)
+
+
+# Get the number of bets that have currently been made
+def get_num_bets():
+    return(self.numBets)
+
+
+# Get the data about a bet at a particular index
+def get_bet(betIndex):
+    return([self.bets[betIndex].bettor, self.bets[betIndex].potential_winnings, self.bets[betIndex].prob_milli]:arr)
