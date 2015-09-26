@@ -45,10 +45,10 @@ function SerpentGambleCtrl($scope, $rootScope, $http) {
     // And previous bets
     $scope.prevbets = [];
     // Try to send a transaction, and display dialog for success or failure
-    $scope.tryToSend = function(fun, successMsg) {
+    $scope.tryToSend = function(fun, successMsg, longSuccessMsg) {
         try {
             var h = fun();
-            $rootScope.addTransaction(h, successMsg);
+            $rootScope.addTransaction(h, successMsg, longSuccessMsg);
         }
         catch (e) {
             console.log("Error", e);
@@ -159,22 +159,28 @@ function SerpentGambleCtrl($scope, $rootScope, $http) {
     $scope.cannot_bet = true;
     $scope.cannot_bet_error_message = "";
     $scope.checkifWeCanBet = function() {
-        var winProbMillis = Math.floor(parseFloat($scope.bet.win_prob) * 1000);
-        if (winProbMillis < 10 || winProbMillis >= 1000) {
-            $scope.cannot_bet = true;
-            $scope.cannot_bet_error_message = "Invalid winning probability (0.01 <= p <= 0.999 required)"
-        }    
-        else if ($scope.administration_status > 0) {
-            $scope.cannot_bet = true;
-            $scope.cannot_bet_error_message = "Server is currently submitting their hash"
-        }
-        else {
-            var winnings = web3.toBigNumber(web3.toWei($scope.bet.amount, 'ether')).mul(1000).div(winProbMillis);
-            $scope.cannot_bet = winnings.gt($scope.available_funds);
-            if ($scope.cannot_bet)
-                $scope.cannot_bet_error_message = "Contract does not have enough funds"
-        }
-        if (!$scope.$$phase) $scope.$apply();
+        eth.getBalance($scope.myAccount, function(err, res) {
+            var winProbMillis = Math.floor(parseFloat($scope.bet.win_prob) * 1000);
+            if (web3.toBigNumber(web3.toWei($scope.bet.amount, 'ether')).gt(res)) {
+                $scope.cannot_bet = true;
+                $scope.cannot_bet_error_message = "You do not have enough funds"
+            }
+            else if (winProbMillis < 10 || winProbMillis >= 1000) {
+                $scope.cannot_bet = true;
+                $scope.cannot_bet_error_message = "Invalid winning probability (0.01 <= p <= 0.999 required)"
+            }    
+            else if ($scope.administration_status > 0) {
+                $scope.cannot_bet = true;
+                $scope.cannot_bet_error_message = "Administrator is currently submitting their hash"
+            }
+            else {
+                var winnings = web3.toBigNumber(web3.toWei($scope.bet.amount, 'ether')).mul(1000).div(winProbMillis);
+                $scope.cannot_bet = winnings.gt($scope.available_funds);
+                if ($scope.cannot_bet)
+                    $scope.cannot_bet_error_message = "Contract does not have enough funds"
+            }
+            if (!$scope.$$phase) $scope.$apply();
+        });
     }
     $scope.watch('bet', $scope.checkifWeCanBet, true);
     setInterval($scope.checkifWeCanBet, 250);
@@ -193,6 +199,7 @@ function SerpentGambleCtrl($scope, $rootScope, $http) {
     $scope.admin = {
         oldSeed: null,
         newSeed: null,
+        lastSubmittednewSeed: null,
         newSeedhash: null,
         setSeedhashDisabled: true,
         fee: 0,
@@ -218,7 +225,7 @@ function SerpentGambleCtrl($scope, $rootScope, $http) {
     // Check if all inputs are correct for us to be able to update the seed
     $scope.checkIfWeCanChangeSeed = function() {
         if ($scope.admin.newSeed) {
-            var s = $scope.admin.newSeed;
+            var s = $scope.admin.newSeed || '';
             var os = $scope.admin.oldSeed || '';
             if (s.substr(0, 2) != '0x')
                 s = '0x' + s;
@@ -229,11 +236,18 @@ function SerpentGambleCtrl($scope, $rootScope, $http) {
                 $scope.admin.setSeedhashDisabled = true;
                 $scope.admin.cannotSetSeedhashErrorMessage = "Seedhash must be 32 bytes long and in hexadecimal format";
             }
+            else if (s == os) {
+                $scope.admin.newSeedhash = null;
+                $scope.admin.setSeedhashDisabled = true;
+                $scope.admin.cannotSetSeedhashErrorMessage = "Please generate a new seed that is not equal to your old seed!";
+            }
             else if (os.length != 66 && $scope.seedhash != '0x0000000000000000000000000000000000000000000000000000000000000000') {
+                $scope.admin.newSeedhash = '0x' + sha3Hex(""+$scope.admin.newSeed, true);
                 $scope.admin.setSeedhashDisabled = true;
                 $scope.admin.cannotSetSeedhashErrorMessage = "Provided old seed must be 32 bytes long and in hexadecimal format";
             }
             else if ($scope.seedhash != '0x0000000000000000000000000000000000000000000000000000000000000000' && '0x'+sha3Hex(""+($scope.admin.oldSeed || "")) != $scope.seedhash) {
+                $scope.admin.newSeedhash = '0x' + sha3Hex(""+$scope.admin.newSeed, true);
                 $scope.admin.setSeedhashDisabled = true;
                 $scope.admin.cannotSetSeedhashErrorMessage = "Provided old seed does not match hash in contract"
             }
@@ -282,7 +296,7 @@ function SerpentGambleCtrl($scope, $rootScope, $http) {
             return $scope.contract.set_curseed($scope.admin.oldSeed,
                                                 '0x' + sha3Hex($scope.admin.newSeed, true),
                                                 {from: $scope.ADMIN, gas: 1500000});
-        }, "Changing seed");
+        }, "Changing seed", "The new seed that you have set is: " + $scope.admin.newSeed + ". Please make sure to store this seed; within 48 hours, you must come back to this tab and input the seed into the \"Old seed\" textbox in order to resolve all bets and generate a new seed");
     }
 
     // Change fee

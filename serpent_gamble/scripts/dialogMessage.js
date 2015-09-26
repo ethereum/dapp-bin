@@ -11,12 +11,12 @@ app.directive('message', function() {
     var template = '<div class="modal" ng-show="dialogMessage.body" style="width: 740px">' +
                         '<div class="modal-header">' +
                             '<span>{{ dialogMessage.title }}</span>' +
-                            '<span style="float:right" ng-click="dialogMessage = null">x</span>' +
+                            '<span style="float:right" ng-click="dialogMessage.body = null; dialogMessage.title = null;">x</span>' +
                         '</div>' +
                         '<div class="modal-body" style="text-align:justify" ng-bind-html-unsafe="dialogMessage.body">' +
                         '</div>' +
                         '<div class="modal-footer">' +
-                            '<button class="btn" ng-click="dialogMessage = null"> Close</button>' +
+                            '<button class="btn" ng-click="dialogMessage.body = null; dialogMessage.title = null;"> Close</button>' +
                         '</div>' +
                     '</div>';
 

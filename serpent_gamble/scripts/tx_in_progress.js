@@ -18,9 +18,10 @@ app.directive('txInProgress', function() {
         var obj = $scope.txInProgress;
         var eth = web3.eth;
 
-        $rootScope.addTransaction = function(h, description) {
+        $rootScope.addTransaction = function(h, description, longDescription) {
             obj.txhash = h;
             obj.description = description;
+            obj.longDescription = longDescription;
             obj.status = "Pending";
             obj.confirmations = 0;
             obj.timeSubmitted = new Date().getTime() / 1000;
@@ -53,7 +54,7 @@ app.directive('txInProgress', function() {
                     obj.confirmations = 0;
                     obj.status = 'Pending';
                 }
-                if ((new Date().getTime() / 1000) - obj.timeSubmitted > 300)
+                if ((new Date().getTime() / 1000) - obj.timeSubmitted > 300 && obj.status == 'Pending')
                     obj.status = 'Transaction sending failed';
             }
             $scope.$apply();
@@ -68,6 +69,7 @@ app.directive('txInProgress', function() {
                             '<span style="float:right" ng-click="txInProgress.showing = false">x</span>' +
                         '</div>' +
                         '<div class="modal-body" style="text-align:justify">' +
+                            '<span ng-show="txInProgress.longDescription">{{ txInProgress.longDescription }}</span>' + 
                             '<table cellpadding="10px">' +
                                 '<tr>' +
                                     '<td>Transaction hash:</td>' +

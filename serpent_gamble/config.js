@@ -270,6 +270,6 @@ window.accounts = {
                 "name": "Win(uint256,address,uint256,uint256)"
             }
         ], 
-        "address": "0x59375871ab51e8ffdf8d894071b330a3fa55b7d0"
+        "address": "0xd7993a6976ee91e89bc131e6e143d350ddad9a70"
     }
 }
