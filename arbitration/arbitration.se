@@ -1,13 +1,17 @@
-data contracts[2**100](value, recipientA, recipientB, arbiters[10000], numArbiters, votedMask, votesForA, votesForB, arbiterFee)
+data contracts[2**100](value, recipientA, recipientB, arbiters[10000], numArbiters, votedMask, votesForA, votesForB, arbiterFee, description[10])
 data nextContractID
-event NewContract(value:uint256, recipientA:address:indexed, recipientB:address:indexed, arbiters:address[], arbiterFee:uint256, id:uint256)
+event NewContract(value:uint256, recipientA:address:indexed, recipientB:address:indexed, arbiters:address[], arbiterFee:uint256, id:uint256, description:str)
 event PaidOut(id: uint256, recipient:address)
 
-def mk_contract(recipientA:address, recipientB:address, arbiters:address[], arbiterFee:uint256):
+def mk_contract(recipientA:address, recipientB:address, arbiters:address[], arbiterFee:uint256, description:str):
     # Make sure we have enough funds to pay arbiters
     if msg.value < arbiterFee:
         send(msg.sender, msg.value)
         return(-1)
+    # Max description length 288 chars
+    # if len(description) > 288:
+    #     send(msg.sender, msg.value)
+    #     return(-2)
     id = self.nextContractID
     self.contracts[id].value = msg.value - arbiterFee
     self.contracts[id].recipientA = recipientA
@@ -18,9 +22,42 @@ def mk_contract(recipientA:address, recipientB:address, arbiters:address[], arbi
         i += 1
     self.contracts[id].numArbiters = len(arbiters)
     self.contracts[id].arbiterFee = arbiterFee
+    # Set description
+    self.contracts[id].description[0] = len(description)
+    i = 0
+    while i * 32 < len(description):
+        self.contracts[id].description[i + 1] = description[i]
+        i += 1
     self.nextContractID = id + 1
-    log(type=NewContract, msg.value - arbiterFee, recipientA, recipientB, arbiters, arbiterFee)
+    log(type=NewContract, msg.value - arbiterFee, recipientA, recipientB, arbiters, arbiterFee, id, description)
     return(id)
+
+def const get_contract_value(id):
+    return self.contracts[id].value
+
+def const get_contract_recipients(id):
+    return([self.contracts[id].recipientA, self.contracts[id].recipientB]:address[])
+
+def const get_contract_arbiters(id):
+    o = alloc(200)
+    o[0] = self.contracts[id].numArbiters
+    i = 0
+    while i < o[0]:
+        o[i + 1] = self.contracts[id].arbiters[i]
+        i += 1
+    return(o + 32:address[])
+
+def const get_contract_arbiterFee(id):
+    return(self.contracts[id].arbiterFee)
+
+def const get_contract_description(id):
+    buffer = alloc(320)
+    i = 0
+    buffer[0] = self.contracts[id].description[0]
+    while i * 32 < buffer[0]:
+        buffer[i + 1] = self.contracts[id].description[i + 1]
+        i += 1
+    return(buffer + 32:str)
 
 def vote(id, voteForA:bool):
     myArbiterIndex = -1
