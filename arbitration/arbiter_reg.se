@@ -75,3 +75,7 @@ def const get_addresses(startIndex):
         i += 1
     o[-1] = i
     return(o:address[])
+
+# The ethereum foundation can withdraw registration fees
+def withdraw():
+    send(0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae, self.balance)

@@ -23,11 +23,31 @@ def test():
     assert not c.vote(x, True, sender=t.k5)
     prebals = [s.block.get_balance(y) for y in (t.a1, t.a2, t.a3, t.a4, t.a5, t.a6)]
     assert c.vote(x, False, sender=t.k4)
-    assert o[-1]["_event_type"] == "PaidOut"
-    assert o[-1]["recipient"] == utils.encode_hex(t.a2), (o[-1]["recipient"], utils.encode_hex(t.a1), utils.encode_hex(t.a2))
+    assert o[-1]["_event_type"] == "ContractClosed"
+    assert o[-1]["recipient"] == utils.encode_hex(t.a2)
     postbals = [s.block.get_balance(x) for x in (t.a1, t.a2, t.a3, t.a4, t.a5, t.a6)]
     diffs = [b - a for a, b in zip(prebals, postbals)]
     assert diffs == [0, 99000, 0, 500, 500, 0]
+    # Test voluntary surrender of funds
+    x2 = c.mk_contract(t.a1, t.a2, [t.a3, t.a4, t.a5, t.a6, t.a7], 1000, "horse" * 5, value=100000)
+    prebals = [s.block.get_balance(y) for y in (t.a1, t.a2, t.a3, t.a4, t.a5, t.a6, t.a7)]
+    assert not c.vote(x2, True, sender=t.k1)
+    assert c.vote(x2, False, sender=t.k1)
+    assert o[-1]["_event_type"] == "ContractClosed"
+    assert o[-1]["recipient"] == utils.encode_hex(t.a2)
+    postbals = [s.block.get_balance(x) for x in (t.a1, t.a2, t.a3, t.a4, t.a5, t.a6, t.a7)]
+    diffs = [b - a for a, b in zip(prebals, postbals)]
+    assert diffs == [0, 100000, 0, 0, 0, 0, 0], diffs
+    x3 = c.mk_contract(t.a1, t.a2, [t.a3, t.a4, t.a5, t.a6, t.a7], 1000, "horse" * 5, value=100000)
+    prebals = [s.block.get_balance(y) for y in (t.a1, t.a2, t.a3, t.a4, t.a5, t.a6, t.a7)]
+    assert not c.vote(x3, False, sender=t.k2)
+    assert c.vote(x3, True, sender=t.k5)
+    assert c.vote(x3, True, sender=t.k2)
+    assert o[-1]["_event_type"] == "ContractClosed"
+    assert o[-1]["recipient"] == utils.encode_hex(t.a1)
+    postbals = [s.block.get_balance(x) for x in (t.a1, t.a2, t.a3, t.a4, t.a5, t.a6, t.a7)]
+    diffs = [b - a for a, b in zip(prebals, postbals)]
+    assert diffs == [99000, 0, 0, 0, 1000, 0, 0]
     # Test the arbiter registry
     c = s.abi_contract('arbiter_reg.se')
     assert not c.register(sender=t.k1, value=10**14)
