@@ -3,7 +3,7 @@ SAFE_CONFIRMATIONS = 12;
 
 // Maintain a list of all logs that satisfy a particular filter. Call a
 // callback when an initial list is prepared.
-function filtered_list(filter, cb, cb2) {
+function filtered_list(filter, cb) {
     this.filter = filter;
     this.logs = [];
     this.logMap = {};
@@ -28,6 +28,7 @@ function filtered_list(filter, cb, cb2) {
     });
     web3.eth.filter('latest', function(err, block) { me.filterGrabber(err, block); })
     this.filterGrabber = function(err, block) {
+        console.log('grabbing latest logs for filter')
         // Grab all the results within the last SAFE_CONFIRMATIONS confirmations,
         // check that they are still valid, and re-sort them just in case as
         // filter.watch does sometimes give results out of order
@@ -41,8 +42,7 @@ function filtered_list(filter, cb, cb2) {
         }
         grab = grab.sort(function(a, b) { return a.blockNumber > b.blockNumber });
         grab.map(function(x) { me.logs.append(x) });
-        console.log('l', me.logs, cb2);
-        if (cb2) cb2();
+        console.log('grabbed logs: ', me.logs);
     };
     this.shutdown = function() { me.filterGrabber = function(){}; };
 }

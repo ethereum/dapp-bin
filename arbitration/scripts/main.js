@@ -98,8 +98,10 @@ function ArbitrationCtrl($scope, $rootScope, $http) {
     $scope.get_arbiters();
     $scope.update_fees_paid_map();
     web3.eth.filter('latest').watch(function(err, res) {
+        console.log('getting arbiters from directory');
         $scope.get_arbiters();
         $scope.update_fees_paid_map();
+        console.log('gotten arbiters from directory');
     });
     // Helper functions to add and remove arbiters
     $scope.removeArbiter = function(a) {
@@ -277,7 +279,7 @@ function ArbitrationCtrl($scope, $rootScope, $http) {
                                 });
                             }
                             $scope.totGathered += 1;
-                            console.log(93, $scope.totGathered, $scope.numGathering, $scope.gathering.length);
+                            if ($scope.totGathered == $scope.numGathering) {
                                 $scope.escrows = $scope.gathering;
                                 console.log('created escrow list', $scope.escrows);
                             }
@@ -293,16 +295,22 @@ function ArbitrationCtrl($scope, $rootScope, $http) {
         $scope.myOldAccount = $scope.myAccount;
         console.log('resetting escrow filters');
         [$scope.arbNL1, $scope.arbNL2, $scope.arbNL3].map(function(x) { if (x) x.shutdown() });
-        var arbNotifyFilter = $scope.arbitration_contract.ArbiterNotification({address: $scope.myAccount}, {fromBlock: eth.blockNumber - 30000});
+        var gathered = 0;
+        var cb = function() {
+            gathered += 1;
+            if (gathered == 3) { console.log('pl'); $scope.processEscrowList(); }
+        }
+        var arbNotifyFilter = $scope.arbitration_contract.ArbiterNotification({address:$scope.myAccount},{fromBlock: eth.blockNumber - 30000});
+        $scope.arbNL1 = new filtered_list(arbNotifyFilter, cb);
         var arbNotifyFilter2 = $scope.arbitration_contract.NewContract({recipientA: $scope.myAccount}, {fromBlock: eth.blockNumber - 30000});
-        $scope.arbNL2 = new filtered_list(arbNotifyFilter2);
+        $scope.arbNL2 = new filtered_list(arbNotifyFilter2, cb);
         var arbNotifyFilter3 = $scope.arbitration_contract.NewContract({recipientB: $scope.myAccount}, {fromBlock: eth.blockNumber - 30000});
-        $scope.arbNL3 = new filtered_list(arbNotifyFilter3);
-        $scope.arbNL1 = new filtered_list(arbNotifyFilter, $scope.processEscrowList);
+        $scope.arbNL3 = new filtered_list(arbNotifyFilter3, cb);
         $scope.myAccount = newVal;
     }
+    eth.filter('latest', $scope.processEscrowList);
     setInterval($scope.resetEscrowFilters, 250);
-    // Make a new escrow
+    // Vote on a particular escrow
     $scope.vote = function(id, value) {
         $scope.tryToSend(function() {
             return $scope.arbitration_contract.vote(id, value,

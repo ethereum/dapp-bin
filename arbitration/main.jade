@@ -33,19 +33,23 @@ body(ng-app="arbitration"): div(ng-controller="ArbitrationCtrl")
                             tr
                                 td Arbiters
                                 td
-                                    div(ng-repeat="a in escrow.arbiters")
-                                        span {{ a }}
+                                    div(ng-repeat="a in escrow.arbiters", style="height:40px")
+                                        small {{ a }}
+                                td
+                                    div(ng-repeat="a in escrow.arbiters", style="height:40px")
                                         button.btn.raise5(ng-click="removeArbiter(a)", style="margin-left:12px") Remove
                             tr
                                 td Add new arbiter
                                 td
                                     span
                                         input(type="text",placeholder="Address",ng-model="escrow.newArbiter")
-                                        button.btn.raise5(ng-click="addArbiter()", style="margin-left:10px") Add
+                                td
+                                    button.btn.raise5(ng-click="addArbiter()", style="margin-left:10px") Add
                             tr
                                 td Add new arbiter from selection
                                 td
                                     select(ng-model="escrow.newArbiterFromSelection", ng-options="x for x in arbiters")
+                                td
                                     button.btn.raise5(ng-click="addArbiterFromSelection()", style="margin-left:12px") Add
                             tr
                                 td
@@ -54,7 +58,7 @@ body(ng-app="arbitration"): div(ng-controller="ArbitrationCtrl")
                             tr
                                 td Description
                                 td
-                                    input(type="text",placeholder="Description",ng-model="escrow.description")
+                                    textarea(placeholder="Description",ng-model="escrow.description",style="width:333px",rows="4")
                             tr
                                 td Value
                                 td
@@ -67,7 +71,7 @@ body(ng-app="arbitration"): div(ng-controller="ArbitrationCtrl")
                                 td
                                 td
                                     button.btn.raise5(ng-click="createEscrow()", ng-disabled="cannot_create_escrow") Create escrow   
-                                    span.redtext(style="margin-left: 20px", ng-show="cannot_create_escrow") {{ cannot_create_escrow_error_message }}
+                                    small.redtext(style="margin-left: 20px", ng-show="cannot_create_escrow") {{ cannot_create_escrow_error_message }}
                 div(ng-show="activetab == 1")
                     center
                         table(style="margin:100px 0px",cellpadding="20px")
@@ -75,7 +79,6 @@ body(ng-app="arbitration"): div(ng-controller="ArbitrationCtrl")
                                 td Fee
                                 td
                                     input(type="text",placeholder="Fee",ng-model="listingFee")
-                                    span (The more you pay, the higher you will be listed in the dropdown!)
                             tr
                                 td 
                                 td
@@ -100,17 +103,18 @@ body(ng-app="arbitration"): div(ng-controller="ArbitrationCtrl")
                     center
                         table(style="margin:100px 0px",cellpadding="20px")
                             tr
-                                td Description
+                                td(style="width: 250px") Description
                                 td Value
                                 td Fee
+                                td
                                 td
                             tr(ng-repeat="d in escrows")
                                 td {{ d.description }}
                                 td {{ d.value }}
                                 td {{ d.fee }}
                                 td(ng-show="d.type == 1")
-                                    button.btn.raise5(ng-click="vote(d.id, true)") Vote A
-                                    button.btn.raise5(ng-click="vote(d.id, false)") Vote B
+                                    button.btn.raise5(ng-click="vote(d.id, true)", style="width: 45%") Vote A
+                                    button.btn.raise5(ng-click="vote(d.id, false)", style="width: 45%; margin-left: 8%") Vote B
                                 td(ng-show="d.type == 2")
                                     button.btn.raise5(ng-click="vote(d.id, false)") Release funds to counterparty
                                 td(ng-show="d.type == 3")

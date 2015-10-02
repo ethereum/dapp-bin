@@ -73,7 +73,9 @@ app.directive('txInProgress', function() {
                             '<table cellpadding="10px">' +
                                 '<tr>' +
                                     '<td>Transaction hash:</td>' +
-                                    '<td><a href="http://etherscan.io/tx/{{ txInProgress.txhash }}"> {{ txInProgress.txhash }}</a></td>' +
+                                    '<td><small>' + 
+                                        '<a href="http://etherscan.io/tx/{{ txInProgress.txhash }}"> {{ txInProgress.txhash }}</a>' +
+                                    '</small></td>' +
                                 '</tr>' +
                                 '<tr><td>Status:</td><td>{{ txInProgress.status }}</td></tr>' +
                                 '<tr><td>Confirmations:</td><td>{{ txInProgress.confirmations }}</td></tr>' +
