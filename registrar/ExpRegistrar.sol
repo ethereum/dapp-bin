@@ -78,7 +78,7 @@ contract ExpRegistrar is Registrar {
 			OwnerChanged(_name);
 		}
 	}
-	function transfer(string _name, address _newOwner) onlyrecordowner(_name) {
+	function setOwner(string _name, address _newOwner) onlyrecordowner(_name) {
 		m_record[_name].owner = _newOwner;
 		Changed(_name);
 	}

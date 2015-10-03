@@ -117,7 +117,7 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 
 	modifier onlyrecordowner(string _name) { if (m_toRecord[_name].owner == msg.sender) _ }
 
-	function transfer(string _name, address _newOwner) onlyrecordowner(_name) {
+	function setOwner(string _name, address _newOwner) onlyrecordowner(_name) {
 		m_toRecord[_name].owner = _newOwner;
 		Changed(_name);
 	}

@@ -26,7 +26,7 @@ contract ICAPRegistrar {
 		Changed(_name);
 	}
 
-	function transfer(bytes32 _name, address _newOwner) onlyrecordowner(_name) {
+	function setOwner(bytes32 _name, address _newOwner) onlyrecordowner(_name) {
 		m_record[_name].owner = _newOwner;
 		Changed(_name);
 	}
