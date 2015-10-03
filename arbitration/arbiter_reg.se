@@ -1,0 +1,81 @@
+# Arbiter registry
+# There is a minimum 1 ETH fee to register, though registrees are free
+# to pay fees above this. In the dapp, registrations will be sorted by
+# the total fee paid, although an exponential decay of 50% per month
+# will be added.
+
+data arbiters[2**160](totFee, lastPaid, description[10])
+data addressList[2**100]
+data nextAddress
+event NewRegistry(addr:address:indexed, amount)
+event FeePaid(addr:address:indexed, amount, newTotal)
+event NewDescription(addr:address:indexed, description:str)
+
+PERIOD = 86400 * 30 * 1000 / 693
+MINFEE = 10**15
+MAX_PERIOD_BEFORE_EXPIRY = 86400 * 365
+
+def const exp_decay(val, i):
+    while i > PERIOD / 2:
+        val = val * 6065306 / 10000000
+        i -= PERIOD / 2
+    return val - val * i / PERIOD + val * i**2 / PERIOD**2 / 2 - val * i**3 / PERIOD**3 / 6
+
+def register():
+    # Minimum entry fee: 1 ETH
+    if self.arbiters[msg.sender].totFee + msg.value < MINFEE:
+        send(msg.sender, msg.value)
+        return(0:bool)
+    if self.arbiters[msg.sender].totFee == 0:
+        self.addressList[self.nextAddress] = msg.sender
+        self.nextAddress += 1
+        self.arbiters[msg.sender].totFee = msg.value
+        log(type=NewRegistry, msg.sender, msg.value)
+        log(type=FeePaid, msg.sender, msg.value, msg.value)
+    else:
+        timediff = block.timestamp - self.arbiters[msg.sender].lastPaid
+        self.arbiters[msg.sender].totFee = self.exp_decay(self.arbiters[msg.sender].totFee, timediff) + msg.value
+        log(type=FeePaid, msg.sender, msg.value, self.arbiters[msg.sender].totFee)
+    self.arbiters[msg.sender].lastPaid = block.timestamp
+    return(1:bool)
+
+def set_description(description:str):
+    # Max length: 288 chars; also, you need to be registered before you can set description
+    if len(description) > 288 or not self.arbiters[msg.sender].totFee:
+        return(0:bool)
+    self.arbiters[msg.sender].description[0] = len(description)
+    i = 0
+    while i * 32 < len(description):
+        self.arbiters[msg.sender].description[i + 1] = description[i]
+        i += 1
+    log(type=NewDescription, msg.sender, description)
+    return(1:bool)
+
+def const get_tot_fee(account:address):
+    tdiff = block.timestamp - self.arbiters[account].lastPaid
+    if (tdiff > MAX_PERIOD_BEFORE_EXPIRY):
+        return(0)
+    return(self.exp_decay(self.arbiters[account].totFee, tdiff))
+
+def const get_description(account:address):
+    buffer = alloc(320)
+    i = 0
+    buffer[0] = self.arbiters[account].description[0]
+    while i * 32 < buffer[0]:
+        buffer[i + 1] = self.arbiters[account].description[i + 1]
+        i += 1
+    return(buffer + 32:str)
+
+def const get_addresses(startIndex):
+    o = array(50)
+    i = 0
+    MAX = min(self.nextAddress - startIndex, 50)
+    while i < MAX:
+        o[i] = self.addressList[startIndex + i]
+        i += 1
+    o[-1] = i
+    return(o:address[])
+
+# The ethereum foundation can withdraw registration fees
+def withdraw():
+    send(0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae, self.balance)

@@ -1,0 +1,43 @@
+extern currency: [sendCoinFrom:[address,uint256,address]:bool, sendCoin:[uint256,address]:bool]
+
+data orders[](creator, offerCurrency, offerValue, wantCurrency, wantValue)
+data nextOrderId
+
+event Traded(currencyPair:bytes32:indexed, seller:address:indexed, offerValue:uint256, buyer:address:indexed, wantValue:uint256)
+
+def init():
+    self.nextOrderId = 1
+
+def placeOrder(_offerCurrency:address, _offerValue:uint256, _wantCurrency:address, _wantValue:uint256):
+    if _offerCurrency.sendCoinFrom(msg.sender, _offerValue, self):
+        _offerId = self.nextOrderId
+        self.nextOrderId += 1
+        self.orders[_offerId].creator = msg.sender
+        self.orders[_offerId].offerCurrency = _offerCurrency
+        self.orders[_offerId].offerValue = _offerValue
+        self.orders[_offerId].wantCurrency = _wantCurrency
+        self.orders[_offerId].wantValue = _wantValue
+        return(_offerId:uint256)
+    return(0:uint256)
+
+def claimOrder(_offerId:uint256):
+    if self.orders[_offerId].wantCurrency.sendCoinFrom(msg.sender, self.orders[_offerId].wantValue, self.orders[_offerId].creator):
+        self.orders[_offerId].offerCurrency.sendCoin(self.orders[_offerId].offerValue, msg.sender)
+        currencyPair = (self.orders[_offerId].offerCurrency / 2**32) * 2**128 + (self.orders[_offerId].wantCurrency / 2**32)
+        log(type=Traded, currencyPair, self.orders[_offerId].creator, self.orders[_offerId].offerValue, msg.sender, self.orders[_offerId].wantValue)
+        self.orders[_offerId].creator = 0
+        self.orders[_offerId].offerCurrency = 0
+        self.orders[_offerId].offerValue = 0
+        self.orders[_offerId].wantCurrency = 0
+        self.orders[_offerId].wantValue = 0
+        return(1:bool)
+    return(0:bool)
+
+def deleteOrder(_offerId:uint256):
+    self.orders[_offerId].offerCurrency.sendCoin(self.orders[_offerId].offerValue, self.orders[_offerId].creator)
+    self.orders[_offerId].creator = 0
+    self.orders[_offerId].offerCurrency = 0
+    self.orders[_offerId].offerValue = 0
+    self.orders[_offerId].wantCurrency = 0
+    self.orders[_offerId].wantValue = 0
+

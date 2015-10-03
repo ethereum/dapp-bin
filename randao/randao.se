@@ -1,0 +1,119 @@
+data hash_submission_expiry
+data value_submission_expiry
+data answers[1000000](submitter, hash, value)
+data nextParticipant
+data fee
+data submissions
+event HashSubmitted(hash:bytes32, submitter:address, id:uint256)
+event ValueSubmitted(value:bytes32, hash:bytes32, submitter:address, id:uint256)
+event NewResult(id:uint256, value:bytes32)
+data results[2**100]
+data nextResultPos
+
+INF_EXPIRY = 3**70
+HASH_SUBMISSION_PHASE_LENGTH = 900
+VALUE_SUBMISSION_PHASE_LENGTH = 900
+
+def init():
+    INF_EXPIRY = 3**70
+    self.fee = 10**19
+    self.hash_submission_expiry = INF_EXPIRY
+    self.value_submission_expiry = INF_EXPIRY
+
+# Phase 1: generate a random value, submit a hash
+def submitHash(hash:bytes32):
+    # Must include ether exactly equal to the current fee
+    if msg.value < self.fee:
+        send(msg.sender, msg.value)
+        return(-1)
+    # Send back excess funds
+    if msg.value > self.fee:
+        send(msg.sender, self.fee - msg.value)
+    # Phase must be hash submitting phase, and must not be expired
+    if block.timestamp > self.hash_submission_expiry:
+        send(msg.sender, msg.value)
+        return(-2 - self.hash_submission_expiry)
+    np = self.nextParticipant
+    self.answers[np].submitter = msg.sender
+    self.answers[np].hash = hash
+    self.nextParticipant = np + 1
+    if self.hash_submission_expiry == INF_EXPIRY:
+        self.hash_submission_expiry = block.timestamp + HASH_SUBMISSION_PHASE_LENGTH
+        self.value_submission_expiry = block.timestamp + HASH_SUBMISSION_PHASE_LENGTH + VALUE_SUBMISSION_PHASE_LENGTH
+    log(type=HashSubmitted, hash, msg.sender, np)
+    return(np)
+
+# Phase 2: submit the value
+def submitValue(id:uint256, value:bytes32):
+    # Cannot submit values before hash submission period is over
+    if block.timestamp <= self.hash_submission_expiry:
+        return(0:bool)
+    h = self.answers[id].hash
+    if sha3(value) != h:
+        return(0:bool)
+    self.answers[id].value = value
+    log(type=ValueSubmitted, value, h, msg.sender, id)
+    return(1:bool)
+
+# Basic anti-pre-revelation game: you can steal someone else's
+# deposit by sending in the preimage before the hash submission
+# period ends. This makes it harder to credibly collude with
+# others.
+def steal(id:uint256, value:bytes32):
+    if block.timestamp <= self.hash_submission_expiry:
+        h = self.answers[id].hash
+        if sha3(value) == h:
+            send(msg.sender, self.fee / 2)
+            self.answers[id].hash = 0
+
+# After all values are sent in, we can trigger this function to reward
+# everyone as is appropriate
+def claimResults():
+    # Can only perform this action after the value submission period
+    # is over
+    if block.timestamp < self.value_submission_expiry:
+        ~stop()
+    i = 0
+    numHashes = self.nextParticipant
+    remainingBalance = (self.balance - self.fee * numHashes) / numHashes
+    bonus = remainingBalance / 100
+    o = 0
+    failed = 0
+    po = 0
+    while i < numHashes:
+        if sha3(self.answers[i].value) == self.answers[i].hash:
+            send(self.answers[i].submitter, self.fee + bonus)
+            o = ~xor(o, self.answers[i].value)
+            po += 1
+        else:
+            failed = 1
+            po += 10
+        i += 1
+    self.nextParticipant = 0
+    if not failed:
+        self.results[self.nextResultPos] = o
+        log(type=NewResult, self.nextResultPos, o)
+        self.nextResultPos += 1
+    optimalFeeGuess = self.fee * numHashes / 12
+    self.fee = (self.fee * 99 + optimalFeeGuess) / 100
+    self.hash_submission_expiry = INF_EXPIRY
+    return(numHashes)
+
+
+def getFee():
+    return(self.fee)
+
+def getPhase():
+    if block.timestamp > self.hash_submission_expiry:
+        if block.timestamp > self.value_submission_expiry:
+            return(2)
+        return(1)
+    return(0)
+
+def getNextResultPos():
+    return(self.nextResultPos)
+
+def getResult(id):
+    if id >= self.nextResultPos:
+        return(0:bytes32)
+    return(self.results[id]:bytes32)
