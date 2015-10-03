@@ -136,11 +136,7 @@ contract multiowned {
 
         // determine the bit to set for this owner.
         uint ownerIndexBit = 2**ownerIndex;
-        if (pending.ownersDone & ownerIndexBit == 0) {
-            return false;
-        } else {
-            return true;
-        }
+        return !(pending.ownersDone & ownerIndexBit == 0);
     }
     
     // INTERNAL METHODS

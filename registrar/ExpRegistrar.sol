@@ -19,10 +19,15 @@ contract ExpRegistrar is Registrar {
 		address subRegistrar;
 		bytes32 content;
 		address owner;
+		uint8 phase;
+		uint32 deadline;
 		uint price;
 	}
 
 	event OwnerChanged(string indexed name);
+	event LockBegin(string indexed name);
+	event Locked(string indexed name);
+	event Unlocked(string indexed name);
 	event AddressChanged(address indexed name);
 
 	modifier onlyrecordowner(string _name) { if (m_record[_name].owner == msg.sender) _ }
@@ -36,8 +41,27 @@ contract ExpRegistrar is Registrar {
 		m_reverse[uint160(this)] = "NameReg";
 	}
 	
+	function initLock() {
+		if (rec.phase == 0 && msg.sender == rec.owner) {
+			rec.phase = 1;
+			rec.deadline = now + 7 days;
+		}
+	}
+	function lock(string _name) {
+		Record rec = m_record[_name];
+		if (rec.phase == 1 && now > rec.deadline) {
+			rec.phase = 2;
+		}
+	}
+	function unlock(string _name) {
+		Record rec = m_record[_name];
+		if (rec.phase == 2 && msg.sender == rec.owner) {
+			rec.phase = 0;
+		}
+	}
+
 	function reserve(string _name) {
-	    Record rec = m_record[_name];
+		Record rec = m_record[_name];
 		if (rec.owner == msg.sender) {
 			rec.price += 10 * msg.value;
 		}
@@ -46,10 +70,11 @@ contract ExpRegistrar is Registrar {
 			rec.owner = msg.sender;
 			OwnerChanged(_name);
 		}
-		else if  (rec.owner != 0 && msg.value >= rec.price) {
+		else if (rec.phase != 2 && rec.owner != 0 && msg.value >= rec.price) {
 			rec.owner.send(rec.price * 50 / 100);
 			rec.price = 10 * msg.value;
 			rec.owner = msg.sender;
+			rec.phase = 0;
 			OwnerChanged(_name);
 		}
 	}
