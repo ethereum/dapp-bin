@@ -3,13 +3,21 @@
 // @authors:
 //   Gav Wood <g@ethdev.com>
 
-contract Registrar {
+contract NameRegister {
+	function addr(string _name) constant returns (address o_owner);
+	function name(address _owner) constant returns (string o_name);
+}
+
+contract Registrar is NameRegister {
 	event Changed(string indexed name);
+	event ReverseChanged(address indexed addr, string indexed name);
 
 	function owner(string _name) constant returns (address o_owner);
 	function addr(string _name) constant returns (address o_address);
 	function subRegistrar(string _name) constant returns (address o_subRegistrar);
 	function content(string _name) constant returns (bytes32 o_content);
+	
+	function name(address _owner) constant returns (string o_name);
 }
 
 contract FixedFeeRegistrar is Registrar {
@@ -24,7 +32,7 @@ contract FixedFeeRegistrar is Registrar {
 
 	function reserve(string _name) {
 	    Record rec = m_record(_name);
-		if (rec.owner == 0 && msg.value >= c_fee) {
+		if (rec.owner == 0 && msg.value >= c_fee && bytes(_name).length >= 9) {
 			rec.owner = msg.sender;
 			Changed(_name);
 		}
@@ -50,6 +58,13 @@ contract FixedFeeRegistrar is Registrar {
 		m_record(_name).content = _content;
 		Changed(_name);
 	}
+	function setName(string _name) {
+		if (m_record(_name).addr == msg.sender)
+		{
+			ReverseChanged(msg.sender, _name);
+			m_toName[uint(msg.sender)] = _name;
+		}
+	}
 	
 	function record(string _name) constant returns (address o_addr, address o_subRegistrar, bytes32 o_content, address o_owner) {
 	    Record rec = m_record(_name);
@@ -67,5 +82,6 @@ contract FixedFeeRegistrar is Registrar {
 	function m_record(string _name) constant internal returns (Record storage o_record) {
 	    return m_recordData[uint(sha3(_name)) / 8];
 	}
-	uint constant c_fee = 69 ether;
+	string[2**160] m_toName;
+	uint constant c_fee = 5 ether;
 }
