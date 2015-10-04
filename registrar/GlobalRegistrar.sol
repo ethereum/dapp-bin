@@ -7,7 +7,7 @@ contract NameRegister {
 
 contract Registrar is NameRegister {
 	event Changed(string indexed name);
-	event PrimaryChanged(string indexed name, address indexed addr);
+	event ReverseChanged(address indexed addr, string indexed name);
 
 	function owner(string _name) constant returns (address o_owner);
 	function addr(string _name) constant returns (address o_address);
@@ -125,20 +125,22 @@ contract GlobalRegistrar is Registrar, AuctionSystem {
 	function disown(string _name) onlyrecordowner(_name) {
 		if (stringsEqual(m_toName[m_toRecord[_name].primary], _name))
 		{
-			PrimaryChanged(_name, m_toRecord[_name].primary);
+			ReverseChanged(m_toRecord[_name].primary, "");
 			m_toName[m_toRecord[_name].primary] = "";
 		}
 		delete m_toRecord[_name];
 		Changed(_name);
 	}
 
-	function setAddress(string _name, address _a, bool _primary) onlyrecordowner(_name) {
-		m_toRecord[_name].primary = _a;
-		if (_primary)
+	function setName(string _name) {
+		if (m_toRecord[_name].primary == msg.sender)
 		{
-			PrimaryChanged(_name, _a);
-			m_toName[_a] = _name;
+			ReverseChanged(msg.sender, _name);
+			m_toName[msg.sender] = _name;
 		}
+	}
+	function setAddress(string _name, address _a) onlyrecordowner(_name) {
+		m_toRecord[_name].primary = _a;
 		Changed(_name);
 	}
 	function setSubRegistrar(string _name, address _registrar) onlyrecordowner(_name) {
