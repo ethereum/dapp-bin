@@ -85,3 +85,4 @@ contract FixedFeeRegistrar is Registrar {
 	string[2**160] m_toName;
 	uint constant c_fee = 5 ether;
 }
+
