@@ -77,6 +77,7 @@ contract FixedFeeRegistrar is Registrar {
 	function subRegistrar(string _name) constant returns (address) { return m_record(_name).subRegistrar; }
 	function content(string _name) constant returns (bytes32) { return m_record(_name).content; }
 	function owner(string _name) constant returns (address) { return m_record(_name).owner; }
+	function name(address _owner) constant returns (string) { return m_toName[uint(_owner)]; }
 
 	Record[2**253] m_recordData;
 	function m_record(string _name) constant internal returns (Record storage o_record) {
