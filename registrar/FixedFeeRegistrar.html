@@ -76,6 +76,7 @@ With account: <input id="from" class="account owned" value="XE930WWR03ZUUB03QR0N
 <div>Subregistrar: <input id="sub" class="account" placeholder="e.g. XE032ELZGPENJL7T92OW2EF342PX3PY3Y4T"/><button id="setsub">Set</button></div>
 <div>Content: <input id="content" class="hash" placeholder="e.g. 56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"/><button id="setcontent">Set</button></div>
 <div>Transfer: <input id="transferto" class="account" placeholder="e.g. XE930WWR03ZUUB03QR0NPY442HQYHLHEG3"/><button id="transfer">Transfer</button></div>
+<div>Refund: <input id="refundto" class="account" placeholder="e.g. XE930WWR03ZUUB03QR0NPY442HQYHLHEG3"/><button id="disown">Disown</button></div>
 </div>
 
 </div>
@@ -83,9 +84,11 @@ With account: <input id="from" class="account owned" value="XE930WWR03ZUUB03QR0N
 <div id="log">
 </div>
 <script>
-var FixedFeeRegistrar = web3.eth.contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"name","outputs":[{"name":"o_name","type":"string"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_newOwner","type":"address"}],"name":"setOwner","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_a","type":"address"}],"name":"setAddr","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"addr","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"subRegistrar","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"}],"name":"reserve","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_refund","type":"address"}],"name":"disown","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"}],"name":"setName","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_registrar","type":"address"}],"name":"setSubRegistrar","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"content","outputs":[{"name":"","type":"bytes32"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"record","outputs":[{"name":"o_addr","type":"address"},{"name":"o_subRegistrar","type":"address"},{"name":"o_content","type":"bytes32"},{"name":"o_owner","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_content","type":"bytes32"}],"name":"setContent","outputs":[],"type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"name","type":"string"}],"name":"Changed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"addr","type":"address"},{"indexed":true,"name":"name","type":"string"}],"name":"ReverseChanged","type":"event"}]);
+web3;
 web3.eth.defaultBlock = "pending";
-var theReg = FixedFeeRegistrar.at("0x0e5e2b9341341ade98f510ad9a744e01f3b29f03");
+
+var FixedFeeRegistrar = web3.eth.contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"name","outputs":[{"name":"o_name","type":"string"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_newOwner","type":"address"}],"name":"setOwner","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_a","type":"address"}],"name":"setAddr","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"addr","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"subRegistrar","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"}],"name":"reserve","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_refund","type":"address"}],"name":"disown","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"}],"name":"setName","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_registrar","type":"address"}],"name":"setSubRegistrar","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"content","outputs":[{"name":"","type":"bytes32"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"record","outputs":[{"name":"o_addr","type":"address"},{"name":"o_subRegistrar","type":"address"},{"name":"o_content","type":"bytes32"},{"name":"o_owner","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_content","type":"bytes32"}],"name":"setContent","outputs":[],"type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"name","type":"string"}],"name":"Changed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"addr","type":"address"},{"indexed":true,"name":"name","type":"string"}],"name":"ReverseChanged","type":"event"}]);
+var theReg = FixedFeeRegistrar.at("0x5e70c0bbcd5636e0f9f9316e9f8633feb64d4050");
 var price = 5000000000000000000;
 var $ = function(_s) { return document.getElementById(_s); }
 var $log = function(_s) { $('log').innerHTML += "<div>" + _s + "</div>"; }
@@ -95,7 +98,7 @@ var isZero = function(_s) { return /^(0x)?0*$/.exec(_s) != null; }
 var subZero = function(_s, _d) { return isZero(_s) ? _d : _s; }
 
 function reserve() {
-	theReg.reserve.sendTransaction($('name').value, {from: $('from').value, value: price});
+	theReg.reserve.sendTransaction($('name').value/*.toLowerCase()*/, {from: $('from').value, value: price});
 }
 
 function isICAP(_t) {
@@ -107,10 +110,11 @@ function toRawAddress(_i) {
 }
 
 function spruce(_i) { return _i.substr(0, 2) == '0x' ? _i : ('0x' + _i); }
+function spruceAddress(_i) { return (isICAP(_i) || _i.substr(0, 2) == '0x') ? _i : ('0x' + _i); }
 
 function isGood(_i, _t) {
 	if (_t == 'address')
-		return web3.isAddress(_i) || isICAP(_i);
+		return isICAP(_i) || web3.isAddress(_i);
 	else if (_t == 'owned')
 	{
 		var a = toRawAddress(_i);
@@ -141,7 +145,7 @@ function enableIfGood(_b, _i, _t) {
 }
 
 function updatenameaction() {
-	var n = $('name').value;
+	var n = $('name').value/*.toLowerCase()*/;
 	var reserved = false;
 	var ours = false;
 	var short = n.length < 9;
@@ -176,11 +180,11 @@ function updatenameaction() {
 		$('content').value = subZero(theReg.content(n), '');
 		$('transferto').value = '';
 		
-		$('setaddress').onclick = function() { theReg.setAddr.sendTransaction(n, $('address').value, {from: owner}); };
-		$('setcontent').onclick = function() { theReg.setContent.sendTransaction(n, $('content').value, {from: owner}); };
-		$('setsub').onclick = function() { theReg.setSubRegistrar.sendTransaction(n, $('sub').value, {from: owner}); };
+		$('setaddress').onclick = function() { theReg.setAddr.sendTransaction(n, spruce($('address').value), {from: owner}); };
+		$('setcontent').onclick = function() { theReg.setContent.sendTransaction(n, spruce($('content').value), {from: owner}); };
+		$('setsub').onclick = function() { theReg.setSubRegistrar.sendTransaction(n, spruce($('sub').value), {from: owner}); };
 		$('transfer').onclick = function() {
-			theReg.transfer.sendTransaction(n, $('transferto').value, {from: owner});
+			theReg.transfer.sendTransaction(n, spruceAddress($('transferto').value), {from: owner});
 			updatenameaction();
 		};
 		$('setprimary').onclick = function() {
@@ -189,6 +193,7 @@ function updatenameaction() {
 				theReg.setAddr.sendTransaction(n, a, {from: owner});
 			theReg.setName.sendTransaction(n, {from: a});
 		};
+		$('disown').onclick = function() { theReg.disown.sendTransaction(n, spruceAddress($('refundto').value), {from: owner}); };
 		enableIfGood($('setcontent'), $('content'), 'data');
 		enableIfGood($('setsub'), $('sub'), 'address');
 		enableIfGood($('transfer'), $('transferto'), 'address');
@@ -196,6 +201,7 @@ function updatenameaction() {
 			$('setprimary').disabled = !updateGoodness($('address'), 'owned');
 			$('setaddress').disabled = !updateGoodness($('address'), 'address');
 		})();
+		enableIfGood($('disown'), $('refundto'), 'address');
 	}
 }
 
