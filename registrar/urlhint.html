@@ -1,0 +1,204 @@
+<html>
+<head>
+<title>URL Hint Registry</title>
+<style>
+* {
+	font-family: Ubuntu, Tahoma, sans
+}
+input {
+	border-radius: 1pt;
+	margin: 2pt;
+	padding: 2pt;
+	border: none;
+	box-shadow: 0px 1px 4px 0px rgba(128,128,128,1);
+}
+input.account, input.hash {
+	font-family: monospace, Courier;
+}
+input.good {
+	background: #efe
+}
+input.bad {
+	background: #fee
+}
+span#iscanon {
+	border: 1pt solid #008;
+	background: #ddf;
+	border-radius: 2pt;
+	margin: 2pt;
+	padding: 2pt;
+	font-size: x-small;
+	font-family: Tahoma, sans
+}
+span.ok {
+	border: 1pt solid #080;
+	background: #dfd;
+	border-radius: 2pt;
+	margin: 2pt;
+	padding: 2pt;
+	font-size: x-small;
+	font-family: Tahoma, sans
+}
+span.error {
+	border: 1pt solid #800;
+	background: #fdd;
+	border-radius: 2pt;
+	margin: 2pt;
+	padding: 2pt;
+	font-size: x-small;
+	font-family: Ubuntu, Tahoma, sans
+}
+input#hash {
+	margin: 1em 1em 1em 1em;
+	font-size: large;
+	font-weight: bold;
+}
+input#url {
+	margin: 1em 1em 1em 1em;
+	font-size: large;
+	font-weight: bold;
+	font-family: Ubuntu, Tahoma, sans
+}
+</style>
+</head>
+
+<body>
+
+<div id="hashaction">
+<input id="hash" value="" class="hash" placeholder="e.g. 56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"/>
+<span id="bad" class="error">bad hash</span>
+<span id="notours" class="error">hash already suggested</span>
+
+<div id="free">
+<div>With account: <input id="from" class="account owned" value=""/></div>
+<div>URL: <input id="url" type="url" class="url" value="" placeholder="e.g. postebin.com/raw/"/>
+<div style="color: gray; margin: 0; padding: 0">Note: URL must give a raw format text document containing the encrypted data.</div>
+</div>
+<div style="margin-top: 1em">
+<button id="suggest">Suggest</button>
+</div>
+</div>
+
+</div>
+<div id="log">
+</div>
+<script>
+web3;
+web3.eth.defaultBlock = "pending";
+
+var FixedFeeRegistrar = web3.eth.contract([{"constant":true,"inputs":[{"name":"_owner","type":"address"}],"name":"name","outputs":[{"name":"o_name","type":"string"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_newOwner","type":"address"}],"name":"setOwner","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_a","type":"address"}],"name":"setAddr","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"addr","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"subRegistrar","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"}],"name":"reserve","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_refund","type":"address"}],"name":"disown","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"}],"name":"setName","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_registrar","type":"address"}],"name":"setSubRegistrar","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"content","outputs":[{"name":"","type":"bytes32"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":true,"inputs":[{"name":"_name","type":"string"}],"name":"record","outputs":[{"name":"o_addr","type":"address"},{"name":"o_subRegistrar","type":"address"},{"name":"o_content","type":"bytes32"},{"name":"o_owner","type":"address"}],"type":"function"},{"constant":false,"inputs":[{"name":"_name","type":"string"},{"name":"_content","type":"bytes32"}],"name":"setContent","outputs":[],"type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"name","type":"string"}],"name":"Changed","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"addr","type":"address"},{"indexed":true,"name":"name","type":"string"}],"name":"ReverseChanged","type":"event"}]);
+var theReg = FixedFeeRegistrar.at("0x5e70c0bbcd5636e0f9f9316e9f8633feb64d4050");
+
+var UrlHint = web3.eth.contract([{"constant":true,"inputs":[{"name":"_hash","type":"bytes32"}],"name":"owner","outputs":[{"name":"","type":"address"}],"type":"function"},{"constant":false,"inputs":[],"name":"kill","outputs":[],"type":"function"},{"constant":false,"inputs":[{"name":"_hash","type":"bytes32"},{"name":"_url","type":"bytes32"}],"name":"suggestUrl","outputs":[],"type":"function"},{"constant":true,"inputs":[{"name":"_hash","type":"bytes32"}],"name":"url","outputs":[{"name":"","type":"bytes32"}],"type":"function"}]);
+
+var theUrlHint = UrlHint.at(theReg.addr('urlhinter'));
+
+var $ = function(_s) { return document.getElementById(_s); }
+var $log = function(_s) { $('log').innerHTML += "<div>" + _s + "</div>"; }
+
+var isZero = function(_s) { return /^(0x)?0*$/.exec(_s) != null; }
+var subZero = function(_s, _d) { return isZero(_s) ? _d : _s; }
+function spruce(_i) { return _i.substr(0, 2) == '0x' ? _i : ('0x' + _i); }
+
+function isICAP(_t) {
+	return /^XE\d\d[A-Z0-9]+$/.exec(_t) != null && _t.length >= 34 && _t.length <= 35;
+}
+function toRawAddress(_i) {
+	// TODO
+	return _i;
+}
+
+function isGood(_i, _t) {
+	if (_t == 'address')
+		return web3.isAddress(_i) || isICAP(_i);
+	else if (_t == 'owned')
+	{
+		var a = toRawAddress(_i);
+		var as = web3.eth.accounts;
+		for (var i in as)
+			if (as[i] == _i)
+				return true;
+		false;
+	}
+	else if (_t == 'hash')
+		return spruce(_i).length == 66 && /^(0x)?[0-9A-Fa-f]+$/.exec(_i) != null;
+	else if (_t == 'data')
+		return spruce(_i).length % 2 == 0 && /^(0x)?[0-9A-Fa-f]+$/.exec(_i) != null;
+	else if (_t == 'url31')
+	{
+		_i = _i.replace(/^http:\/\//, '')
+		return _i.length <= 31;
+	}
+	return false;
+}
+
+function updateGoodness(_i, _t) {
+	var g = isGood(_i.value, _t);
+	_i.classList.remove('bad');
+	_i.classList.remove('good');
+	if (_i.value.length)
+		_i.classList.add(g ? 'good' : 'bad');
+	return g;
+}
+
+function enableIfGood(_b, _i, _t, _i2, _t2) {
+	var f = function() {
+		_b.disabled = !updateGoodness(_i, _t);
+		if (_t2 && !_b.disabled)
+			_b.disabled = !updateGoodness(_i2, _t2);
+	};
+	_i.onkeyup = _i.onchange = f;
+	if (_t2)
+		_i2.onkeyup = _i2.onchange = f;
+	f();
+}
+
+function suggest() {
+	theUrlHint.suggestUrl(spruce($('hash').value), web3.fromAscii($('url').value.replace(/^http:\/\//, '')), {from: $('from').value});
+}
+
+function updateNameAction() {
+	var h = $('hash').value;
+	var reserved = false;
+	var ours = false;
+	var bad = !isGood(h, 'hash');
+	var owner;
+	var canon;
+	if (!bad)
+	{
+		owner = theUrlHint.owner(spruce(h));
+		reserved = !isZero(owner);
+		if (reserved)
+			for (var i in web3.eth.accounts)
+				if (web3.eth.accounts[i] == owner)
+					ours = true;
+	}
+
+	$('bad').style.display = bad && h.length ? null : 'none';
+	$('free').style.display = (!bad && (!reserved || ours)) ? null : 'none';
+	$('notours').style.display = (!bad && reserved && !ours) ? null : 'none';
+
+	if (!reserved || ours)
+	{
+		if (!isZero(owner))
+		{
+			$('from').value = owner;
+			$('from').readOnly = true;
+		}
+		else
+		{
+			$('from').value = '';
+			$('from').readOnly = false;
+		}
+		$('url').value = web3.toAscii(subZero(theUrlHint.url(spruce(h)), '0x')).replace(/\0/m, '');
+		enableIfGood($('suggest'), $('from'), 'address', $('url'), 'url31');
+	}
+}
+
+$('suggest').onclick = suggest;
+($('hash').onkeyup = $('hash').onchanged = function() { updateNameAction(); })();
+
+</script>
+</body>
+</html>
+
