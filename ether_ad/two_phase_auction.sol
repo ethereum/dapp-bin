@@ -5,9 +5,9 @@ contract AuctionResultAcceptor {
 contract TwoPhaseAuction {
     adStorer target;
     address owner;
-    uint256 hashRevealPeriod;
     uint256 phase;
-    uint256 nextPhaseStart;
+    uint256 hashSubmissionEnd;
+    uint256 hashRevealEnd;
     uint256 mostRecentAuctionStart;
     uint256 valueSubmissionSubsidyMillis;
     struct Bid {
@@ -24,7 +24,7 @@ contract TwoPhaseAuction {
     uint256 nextBidIndex;
     uint256 totalValueSubmitted;
     uint256 auctionRevenue;
-    // 1 = first price, 2 == second price, 3 == all pay
+    // 1 = first price, 2 == second price, 3 == all pay, 4 == all pay + second price
     uint256 auctionType;
     event BidCommitted(uint256 index, bytes32 bidValueHash, string metadata, address indexed bidder);
     event BidRevealed(uint256 index, uint256 bidValue, string metadata, address indexed bidder);
@@ -39,11 +39,11 @@ contract TwoPhaseAuction {
     // Initialize the auction
     function initialize(address _t, uint256 _hsp, uint256 _hrp, uint256 _vssm, uint256 _tp) returns (bool) {
         if (msg.sender != owner) return false;
-        if (phase == 1 || phase == 2 || phase == 3) return false;
+        if (phase == 1 || phase == 2) return false;
         phase = 1;
         target = adStorer(_t);
-        hashRevealPeriod = _hrp;
-        nextPhaseStart = block.timestamp + _hsp;
+        hashSubmissionEnd = block.timestamp + _hsp;
+        hashRevealEnd = block.timestamp + _hsp + _hrp;
         valueSubmissionSubsidyMillis = _vssm;
         nextBidIndex = 0;
         bestBidValue = 0;
@@ -66,9 +66,7 @@ contract TwoPhaseAuction {
             msg.sender.send(msg.value);
             return (-1);
         }
-        if (phase == 1 && block.timestamp >= nextPhaseStart) {
-            phase = 2;
-            nextPhaseStart = block.timestamp + hashRevealPeriod;
+        if (phase == 1 && block.timestamp >= hashSubmissionEnd) {
             msg.sender.send(msg.value);
             return (-1);
         }
@@ -83,15 +81,13 @@ contract TwoPhaseAuction {
     }
     // Reveal one's bid
     function revealBid(uint256 index, uint256 bidValue, bytes32 nonce) returns (bool) {
-        if (phase == 1 && block.timestamp >= nextPhaseStart) {
+        if (phase == 1 && block.timestamp >= hashRevealEnd) {
             phase = 2;
-            nextPhaseStart = block.timestamp + hashRevealPeriod;
         }
-        if (phase != 2) {
+        if (phase != 1) {
             return (false);
         }
-        if (phase == 2 && block.timestamp >= nextPhaseStart) {
-            phase = 3;
+        if (phase == 1 && block.timestamp < hashSubmissionEnd) {
             return (false);
         }
         if (index >= nextBidIndex)
@@ -109,23 +105,24 @@ contract TwoPhaseAuction {
             secondBestBidValue = bidValue;
         }
         // Only need to keep track of bid values for all-pay auctions
-        if (auctionType == 3) {
+        if (auctionType == 3 || auctionType == 4) {
             bids[index].bidValue = bidValue;
             auctionRevenue += bidValue;
         }
         BidRevealed(index, bidValue, bids[index].metadata, bids[index].bidder);
         return true;
     }
-    // Clean up during phase 3
+    // Clean up during phase 2
     function ping() returns(bool) {
-        if (phase == 2 && block.timestamp >= nextPhaseStart)
-            phase = 3;
-        if (phase != 3) return(false);
+        if (phase == 1 && block.timestamp >= hashRevealEnd)
+            phase = 2;
+        if (phase != 2) return(false);
         uint _nbi = nextBidIndex;
         uint _ar;
         if (auctionType == 1) _ar = bestBidValue;
         else if (auctionType == 2) _ar = secondBestBidValue;
         else if (auctionType == 3) _ar = auctionRevenue;
+        else if (auctionType == 4) _ar = auctionRevenue + secondBestBidValue - bestBidValue;
         while (msg.gas > 500000 && _nbi > 0) {
             _nbi -= 1;
             uint256 subsidy = bids[_nbi].valueSubmitted * _ar * valueSubmissionSubsidyMillis / totalValueSubmitted / 1000; 
@@ -134,12 +131,12 @@ contract TwoPhaseAuction {
                 if (auctionType == 1 || auctionType == 3)
                     bids[_nbi].bidder.send(bids[_nbi].valueSubmitted - bestBidValue + subsidy);
                 // Second price auction: take winner's bid at second highest value
-                else if (auctionType == 2)
+                else if (auctionType == 2 || auctionType == 4)
                     bids[_nbi].bidder.send(bids[_nbi].valueSubmitted - secondBestBidValue + subsidy);
             }
             else {
                 // First price or second price auction: refund everyone else's bids
-                if (auctionType != 3)
+                if (auctionType == 1 || auctionType == 2)
                     bids[_nbi].bidder.send(bids[_nbi].valueSubmitted + subsidy);
                 // All-pay auction: don't refund everyone else's bids
                 else 
@@ -181,7 +178,11 @@ contract TwoPhaseAuction {
         return mostRecentAuctionStart;
     }
 
-    function getPhaseExpiry() constant returns (uint256) {
-        return nextPhaseStart;
+    function getHashSubmissionEnd() constant returns (uint256) {
+        return hashSubmissionEnd;
+    }
+
+    function getHashRevealEnd() constant returns (uint256) {
+        return hashRevealEnd;
     }
 }

@@ -20,12 +20,13 @@ def test():
     content = open('one_phase_auction.sol').read() + open('two_phase_auction.sol').read() + open('adStorer.sol').read()
     logs = []
     c = s.abi_contract(content, language='solidity', log_listener = lambda x: logs.append(x))
+    print s.block.get_receipts()[-1].gas_used
     opa_sig = t.languages['solidity'].mk_full_signature(content, 'OnePhaseAuction')
     tpa_sig = t.languages['solidity'].mk_full_signature(content, 'TwoPhaseAuction')
     auctions = []
-    while not c.initialize():
+    while not c.initialize(86400, 86400, 86400, 3600, 50, 10):
         pass
-    for i in range(7):
+    for i in range(8):
         a = utils.normalize_address(c.getAuctionAddress(i))
         auctions.append(t.ABIContract(s, opa_sig if i < 4 else tpa_sig, a, True, lambda x: logs.append(x)))
     bids = (
@@ -42,11 +43,13 @@ def test():
         # Second price
         [0 + 80, 0 + 160, -80000 + 240, 0 + 320],
         # All pay
-        [-10000 + 242, -50000 + 484, -102000 + 726, -80000 + 968]
+        [-10000 + 242, -50000 + 484, -102000 + 726, -80000 + 968],
+        # All pay second price
+        [-10000 + 220, -50000 + 440, -80000 + 660, -80000 + 880]
     ]
-    # Test all three auction types
+    # Test all four auction types
     start_time = s.block.timestamp
-    for i in range(3):
+    for i in range(4):
         print 'Starting tests for two-phase auction type %d' % i
         s.block.timestamp = start_time
         for p in permutations(bids):
