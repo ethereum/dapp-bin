@@ -103,6 +103,10 @@ contract OnePhaseAuction {
             msg.sender.send(msg.value);
             return false;
         }
+        if (bids[index].bidder != msg.sender) {
+            msg.sender.send(msg.value);
+            return false;
+        }
         bids[index].bidValue += msg.value;
         if (bids[index].bidValue > bestBidValue) {
             bestBidValue = bids[index].bidValue;

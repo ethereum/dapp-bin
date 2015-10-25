@@ -20,7 +20,11 @@ var EtherAdView = React.createClass({
     var blockHash = web3.eth.getBlock(web3.eth.blockNumber).hash;
     return (
       <div>
-        <table>
+        <table style={{tableLayout: "fixed", width: (adSize * 4 + 50)+'px'}}>
+        <col width={(adSize + 10)+'px'} />
+        <col width={(adSize + 10)+'px'} />
+        <col width={(adSize + 10)+'px'} />
+        <col width={(adSize + 10)+'px'} />
             <tr>
                 <td>My address: </td>
                 <td>
@@ -49,11 +53,11 @@ var EtherAdView = React.createClass({
                 <td> <small>Cumulative bids, all pay</small> </td>
             </tr>
             <tr><td colSpan="4">Two-phase (ie. sealed-bid) auctions</td></tr>
-            <tr>
-                <td><TwoPhaseAdBox id={4} /></td>
-                <td><TwoPhaseAdBox id={5} /></td>
-                <td><TwoPhaseAdBox id={6} /></td>
-                <td><TwoPhaseAdBox id={7} /></td>
+            <tr style={{height: (adSize + 40)+'px'}}>
+                <td style={{width: adSizePx, maxWidth: adSizePx, height: (adSize + 40)+'px', position: 'absolute', left: '0px'}}><TwoPhaseAdBox id={4} /></td>
+                <td style={{width: adSizePx, maxWidth: adSizePx, height: (adSize + 40)+'px', position: 'absolute', left: (adSize + 10) + 'px'}}><TwoPhaseAdBox id={5} /></td>
+                <td style={{width: adSizePx, maxWidth: adSizePx, height: (adSize + 40)+'px', position: 'absolute', left: (adSize * 2 + 20) + 'px'}}><TwoPhaseAdBox id={6} /></td>
+                <td style={{width: adSizePx, maxWidth: adSizePx, height: (adSize + 40)+'px', position: 'absolute', left: (adSize * 3 + 30) + 'px'}}><TwoPhaseAdBox id={7} /></td>
             </tr>
             <tr>
                 <td> <small>First price</small> </td>
@@ -118,8 +122,8 @@ var renderMe = function() {
                 auctions[j].winnerAddr = winnerAddr; 
             });
             auctionContracts[j].getMostRecentAuctionStart(function(err, startBlock) {
-                auctions[j].startBlock = web3.toDecimal(startBlock); 
-                if (startBlock != auctionContracts[j].startBlock) {
+                if (web3.toDecimal(startBlock) != auctions[j].startBlock) {
+                    console.log('starting new round of auction', j);
                     filterKeys.map(function(key) {
                         if (auctions[j].logs[key].filter) 
                             auctions[j].logs[key].fl.shutdown();
@@ -133,6 +137,7 @@ var renderMe = function() {
                         }
                     });
                 }
+                auctions[j].startBlock = web3.toDecimal(startBlock); 
             });
             auctionContracts[j].getPhase(function(err, phase) {
                 auctions[j].phase = web3.toDecimal(phase); 
