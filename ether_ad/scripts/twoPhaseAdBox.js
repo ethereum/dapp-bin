@@ -133,6 +133,7 @@ var TwoPhaseAdBox = React.createClass({
             var bids = {};
             var me = this;
             var didIBid = false;
+            var didIReveal = false;
             var a = auctions[this.props.id];
             // Process available BidCommitted logs
             a.logs.BidCommitted.fl.logs.map(function(log) {
@@ -148,6 +149,8 @@ var TwoPhaseAdBox = React.createClass({
             });
             // Process available BidRevealed logs
             a.logs.BidRevealed.fl.logs.map(function(log) {
+                if (log.args.bidder == window.myAccount)
+                    didIReveal = true;
                 var bid = bids[web3.toDecimal(log.args.index)];
                 if (!bid) alert(web3.toDecimal(log.args.index) + '___' +  Object.keys(bids))
                 bid.revealed = true;
@@ -225,11 +228,14 @@ var TwoPhaseAdBox = React.createClass({
                                 <td colSpan="3">Cannot bid during this phase</td>
                             </tr>
                         )
-                        else if (a.phase == 1 && now >= a.hashSubmissionEnd && now < a.hashRevealEnd) return (
-                            <tr>
-                                <td colSpan="3"> <button className="btn" onClick={me.revealBid}>Reveal my bid</button> </td>
-                            </tr>
-                        )
+                        else if (a.phase == 1 && now >= a.hashSubmissionEnd && now < a.hashRevealEnd) {
+                            if (!didIReveal) return (
+                                <tr>
+                                    <td colSpan="3"> <button className="btn" onClick={me.revealBid}>Reveal my bid</button> </td>
+                                </tr>
+                            )
+                            else return (<tr> </tr>)
+                        }
                         // Catch-all
                         else return (
                             <tr style={{'backgroundColor': '#ff6666'}}>
@@ -258,10 +264,10 @@ var TwoPhaseAdBox = React.createClass({
             );
         }
         return(
-            <div style={{height: (adSize + 20)+'px'}}>
+            <div style={{height: (adSize + 30)+'px', overflowY: 'auto'}}>
                 <div>
-                    <button onClick={this.setTab0} style={{width: (adSize / 2)+'px'}} className="btn">View</button>
-                    <button onClick={this.setTab1} style={{width: (adSize / 2)+'px'}} className="btn">Bid</button>
+                    <button onClick={this.setTab0} style={{width: '50%'}} className="btn">View</button>
+                    <button onClick={this.setTab1} style={{width: '50%'}} className="btn">Bid</button>
                 </div>
                 {innerView}
             </div>

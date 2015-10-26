@@ -1,5 +1,3 @@
-var NOT_YET_INCLUDED = -2;
-
 var OnePhaseAdBox = React.createClass({
     getInitialState: function() {
         return {
@@ -33,7 +31,7 @@ var OnePhaseAdBox = React.createClass({
                 transactionHash: res,
                 logIndex: 0,
                 args: {
-                    index: NOT_YET_INCLUDED,
+                    index: res, // txhash as a ghetto temporary index
                     bidder: window.myAccount,
                     metadata: metadata,
                     bidValue: web3.toBigNumber(web3.toWei(value, 'ether'))
@@ -51,7 +49,7 @@ var OnePhaseAdBox = React.createClass({
             // Look for an existing bid where you are the submitter
             if (log.args.bidder == window.myAccount) {
                 var id = log.args.index;
-                if (id == NOT_YET_INCLUDED) {
+                if ((''+id).length >= 64) { // Unconfirmed bids show with the txhash as their index
                     alert("Cannot increase your bid until the bid has at least one confirmation");
                     return;
                 }
@@ -197,13 +195,14 @@ var OnePhaseAdBox = React.createClass({
                                 <td> <button className="btn" onClick={me.bid}>Bid</button> </td>
                             </tr>
                         )
-                        // Phase 1 + you already bid: show the option to increase the bid
-                        else return (
+                        // Phase 1 + you already bid: show the option to increase the bid if the auction allows it
+                        else if (me.props.id == 1 || me.props.id == 3) return (
                             <tr>
                                 <td> <input type="text" className="lower4" ref="increaseBidValue" placeholder="Amount" style={{width: "45px"}}></input> </td>
                                 <td colspan="2"> <button className="btn" onClick={me.increaseBid}>Increase bid</button> </td>
                             </tr>
                         )
+                        else return ( <tr> </tr> )
                     })()
                 }
                 {
@@ -223,7 +222,7 @@ var OnePhaseAdBox = React.createClass({
         }
         // Render the main object, including the button to switch between view and bid mode
         return(
-            <div style={{height: (adSize + 20)+'px', width: adSizePx, maxWidth: adSizePx}}>
+            <div style={{height: (adSize + 30)+'px', width: adSizePx, maxWidth: adSizePx, overflowY: 'auto'}}>
                 <div>
                     <button onClick={this.setTab0} style={{width: (adSize/2)+'px'}} className="btn">View</button>
                     <button onClick={this.setTab1} style={{width: (adSize/2)+'px'}} className="btn">Bid</button>
