@@ -1,0 +1,24 @@
+data data[]
+data owner
+data fee
+
+def init():
+    self.owner = msg.sender
+
+def set(k:bytes32, v):
+    if msg.sender == self.owner:
+        self.data[k] = v
+
+def setFee(f:uint256):
+    if msg.sender == self.owner:
+        self.fee = f
+
+def get(k:bytes32):
+    if msg.value >= self.fee:
+        return(self.data[k])
+    else:
+        return(0)
+
+def getFee():
+    return(self.fee:uint256)
+

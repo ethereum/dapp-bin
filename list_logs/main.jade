@@ -1,0 +1,32 @@
+head
+    script(src="scripts/web3.min.js")
+    script(src="scripts/angular.min.js")
+    script(src="scripts/underscore-min.js")
+    script(src="scripts/sha3.min.js")
+    script(src="scripts/filtered_list.js")
+    script(src="config.js")
+    script(src="scripts/main.js")
+    script(src="scripts/tx_in_progress.js")
+    script(src="scripts/dialogMessage.js")
+    link(rel="stylesheet",type="text/css",href="styles/main.css")
+    link(rel="stylesheet",type="text/css",href="styles/bootstrap.min.css")
+body(ng-app="listlogs"): div(ng-controller="ListLogsCtrl")
+    div
+        div
+            span Logs
+        div(ng-repeat="L in logs.logs")
+            span(style="color:blue", ng-show="L.status == 'confirmed'") {{ L.args.value }}, {{ L.blockNumber }}
+            span(style="color:green", ng-show="L.status == 'confirming'") {{ L.args.value }}, {{ L.blockNumber }}
+            span(style="color:yellow", ng-show="L.status == 'pending'") {{ L.args.value }}, {{ L.blockNumber }}
+            span(style="color:orange", ng-show="L.status == 'dblspent'") {{ L.args.value }}, {{ L.blockNumber }}
+        div
+            span Boundary: {{ boundary }}
+        div
+            span Latest block: {{ latestBlock }}
+        div
+            span Your address
+            select(ng-model="myAccount", ng-options="x for x in accounts")
+        div
+            input(type="text", ng-model="logString")
+            button.btn(ng-click="addLog()") Add log
+            button.btn(ng-click="addBreak()") Add break

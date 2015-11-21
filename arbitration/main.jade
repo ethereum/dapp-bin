@@ -1,0 +1,123 @@
+head
+    script(src="scripts/web3.min.js")
+    script(src="scripts/angular.min.js")
+    script(src="scripts/underscore-min.js")
+    script(src="scripts/sha3.min.js")
+    script(src="scripts/filtered_list.js")
+    script(src="config.js")
+    script(src="scripts/main.js")
+    script(src="scripts/tx_in_progress.js")
+    script(src="scripts/dialogMessage.js")
+    link(rel="stylesheet",type="text/css",href="styles/main.css")
+    link(rel="stylesheet",type="text/css",href="styles/bootstrap.min.css")
+body(ng-app="arbitration"): div(ng-controller="ArbitrationCtrl")
+    div
+        div.lightblue(style="width:20%; height:100%; position: absolute; left: 0px; top: 0px")
+            div(style="padding-top: 65px")
+            div.tabselect(ng-click="activetab = 0", ng-class="{ semilightblue: !activetab}") Make a new escrow
+            div.tabselect(ng-click="activetab = 1", ng-class="{ semilightblue: activetab == 1}") Register on arbiter list
+            div.tabselect(ng-click="activetab = 2", ng-class="{ semilightblue: activetab == 2}") Adjudicate disputes
+        div(style="width:80%; position: absolute; right: 0px")
+            div.white(style="height: 100%", vertical-align: top)
+                div(ng-show="!activetab")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td Your address
+                                td
+                                    select(ng-model="myAccount", ng-options="x for x in accounts")
+                            tr
+                                td Counterparty's address
+                                td
+                                    input(type="text",placeholder="Address",ng-model="escrow.otherAddress")
+                            tr
+                                td Arbiters
+                                td
+                                    div(ng-repeat="a in escrow.arbiters", style="height:40px")
+                                        small {{ a }}
+                                td
+                                    div(ng-repeat="a in escrow.arbiters", style="height:40px")
+                                        button.btn.raise5(ng-click="removeArbiter(a)", style="margin-left:12px") Remove
+                            tr
+                                td Add new arbiter
+                                td
+                                    span
+                                        input(type="text",placeholder="Address",ng-model="escrow.newArbiter")
+                                td
+                                    button.btn.raise5(ng-click="addArbiter()", style="margin-left:10px") Add
+                            tr
+                                td Add new arbiter from selection
+                                td
+                                    select(ng-model="escrow.newArbiterFromSelection", ng-options="x for x in arbiters")
+                                td
+                                    button.btn.raise5(ng-click="addArbiterFromSelection()", style="margin-left:12px") Add
+                            tr
+                                td
+                                td
+                                    span {{ escrow.newArbiterFromSelectionDescription }}
+                            tr
+                                td Description
+                                td
+                                    textarea(placeholder="Description",ng-model="escrow.description",style="width:333px",rows="4")
+                            tr
+                                td Value
+                                td
+                                    input(type="text",placeholder="Value",ng-model="escrow.value")
+                            tr
+                                td Fee
+                                td
+                                    input(type="text",placeholder="Fee",ng-model="escrow.fee")
+                            tr
+                                td
+                                td
+                                    button.btn.raise5(ng-click="createEscrow()", ng-disabled="cannot_create_escrow") Create escrow   
+                                    small.redtext(style="margin-left: 20px", ng-show="cannot_create_escrow") {{ cannot_create_escrow_error_message }}
+                div(ng-show="activetab == 1")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td Fee
+                                td
+                                    input(type="text",placeholder="Fee",ng-model="listingFee")
+                            tr
+                                td 
+                                td
+                                    button.btn.raise5(ng-click="registerArbiter()", ng-disabled="cannot_register") Register or pay fee
+                                    span.redtext(style="margin-left: 20px", ng-show="cannot_register") {{ cannot_register_error_message }}
+
+                            tr
+                                td Current description
+                                td
+                                    span {{ currentArbiterDescription }}
+                            tr
+                                td New description
+                                td
+                                    input(type="text",placeholder="Description",ng-model="listingDescription")
+                            tr
+                                td 
+                                td
+                                    button.btn.raise5(ng-click="setArbiterDescription()", ng-disabled="cannot_set_description") Set description
+                                    span.redtext(style="margin-left: 20px", ng-show="cannot_set_description") {{ cannot_set_description_error_message }}
+
+                div(ng-show="activetab == 2")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td(style="width: 250px") Description
+                                td Value
+                                td Fee
+                                td
+                                td
+                            tr(ng-repeat="d in escrows")
+                                td {{ d.description }}
+                                td {{ d.value }}
+                                td {{ d.fee }}
+                                td(ng-show="d.type == 1")
+                                    button.btn.raise5(ng-click="vote(d.id, true)", style="width: 45%") Vote A
+                                    button.btn.raise5(ng-click="vote(d.id, false)", style="width: 45%; margin-left: 8%") Vote B
+                                td(ng-show="d.type == 2")
+                                    button.btn.raise5(ng-click="vote(d.id, false)") Release funds to counterparty
+                                td(ng-show="d.type == 3")
+                                    button.btn.raise5(ng-click="vote(d.id, true)") Release funds to counterparty
+        div(tx-in-progress)
+        div(message)

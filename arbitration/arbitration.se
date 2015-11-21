@@ -1,0 +1,142 @@
+data contracts[2**100](value, recipientA, recipientB, arbiters[10000], numArbiters, votedMask, votesForA, votesForB, arbiterFee, description[10])
+data nextContractID
+event NewContract(value:uint256, recipientA:address:indexed, recipientB:address:indexed, arbiters:address[], arbiterFee:uint256, id:uint256:indexed, description:str)
+event ArbiterNotification(id:uint256:indexed, arbiter:address:indexed)
+event Vote(id:uint256:indexed, addr:address:indexed, votingForA:bool)
+event ContractClosed(id:uint256:indexed, recipient:address)
+
+def mk_contract(recipientA:address, recipientB:address, arbiters:address[], arbiterFee:uint256, description:str):
+    # Make sure we have enough funds to pay arbiters
+    if msg.value < arbiterFee:
+        send(msg.sender, msg.value)
+        return(-1)
+    # Max description length 288 chars
+    # if len(description) > 288:
+    #     send(msg.sender, msg.value)
+    #     return(-2)
+    id = self.nextContractID
+    self.contracts[id].value = msg.value - arbiterFee
+    self.contracts[id].recipientA = recipientA
+    self.contracts[id].recipientB = recipientB
+    i = 0
+    while i < len(arbiters):
+        self.contracts[id].arbiters[i] = arbiters[i]
+        log(type=ArbiterNotification, id, arbiters[i])
+        i += 1
+    self.contracts[id].numArbiters = len(arbiters)
+    self.contracts[id].arbiterFee = arbiterFee
+    # Set description
+    self.contracts[id].description[0] = len(description)
+    i = 0
+    while i * 32 < len(description):
+        self.contracts[id].description[i + 1] = description[i]
+        i += 1
+    self.nextContractID = id + 1
+    log(type=NewContract, msg.value - arbiterFee, recipientA, recipientB, arbiters, arbiterFee, id, description)
+    return(id)
+
+def const get_contract_value(id):
+    return self.contracts[id].value
+
+def const get_contract_recipients(id):
+    return([self.contracts[id].recipientA, self.contracts[id].recipientB]:address[])
+
+def const get_contract_arbiters(id):
+    o = alloc(200)
+    o[0] = self.contracts[id].numArbiters
+    i = 0
+    while i < o[0]:
+        o[i + 1] = self.contracts[id].arbiters[i]
+        i += 1
+    return(o + 32:address[])
+
+def const get_contract_arbiterFee(id):
+    return(self.contracts[id].arbiterFee)
+
+def const get_contract_description(id):
+    buffer = alloc(320)
+    i = 0
+    buffer[0] = self.contracts[id].description[0]
+    while i * 32 < buffer[0]:
+        buffer[i + 1] = self.contracts[id].description[i + 1]
+        i += 1
+    return(buffer + 32:str)
+
+def const get_number_of_contracts():
+    return(self.nextContractID)
+
+def vote(id, voteForA:bool):
+    myArbiterIndex = -1
+    # Check if I am one of the arbiters
+    i = 0
+    while i < self.contracts[id].numArbiters:
+        if self.contracts[id].arbiters[i] == msg.sender:
+            # If you already voted, you don't count. Note that
+            # this way of implementing the code has the neat
+            # property that if one arbitrator is listed N times.
+            # they can vote N times and those votes will have a
+            # total weight of N
+            myArbiterMask = 2**i
+            if myArbiterMask & self.contracts[id].votedMask == 0:
+                myArbiterIndex = i
+        i += 1
+    # Either participant in the escrow can vote to immediately transfer
+    # to the other party
+    if self.contracts[id].recipientA == msg.sender and voteForA == 0:
+        myArbiterIndex = 999
+    if self.contracts[id].recipientB == msg.sender and voteForA == 1:
+        myArbiterIndex = 999
+    # Not an arbiter for this contract
+    if myArbiterIndex == -1:
+        return(0:bool)
+    done = 0
+    # Add to the voted mask
+    self.contracts[id].votedMask = self.contracts[id].votedMask | myArbiterMask
+    log(type=Vote, id, msg.sender, voteForA)
+    if myArbiterIndex != 999:
+            # Are there enough votes for either A or B?
+        if voteForA:
+            self.contracts[id].votesForA += 1
+            if self.contracts[id].votesForA * 2 > self.contracts[id].numArbiters:
+                done = 1
+        else:
+            self.contracts[id].votesForB += 1
+            if self.contracts[id].votesForB * 2 > self.contracts[id].numArbiters:
+                done = 2
+    else:
+        # Short circuit if it's A or B that is agreeing to surrender
+        done = if(voteForA, 1, 2)
+    # If so, then pay out
+    if done:
+        # Pay out arbiters (note that if no arbiters voted, this does
+        # lead to a divide-by-zero scenario, but it does not matter
+        # since no one gets paid)
+        i = 0
+        arbitersVoted = self.contracts[id].votesForA + self.contracts[id].votesForB
+        fee = self.contracts[id].arbiterFee / arbitersVoted
+        while i < self.contracts[id].numArbiters:
+            if 2**i & self.contracts[id].votedMask:
+                send(self.contracts[id].arbiters[i], fee)
+            i += 1
+        recipient = if(done == 1, self.contracts[id].recipientA, self.contracts[id].recipientB)
+        send(recipient, self.contracts[id].value + self.contracts[id].arbiterFee * (arbitersVoted == 0))
+        log(type=ContractClosed, id, recipient)
+        # Some hygiene, to reduce blockchain bloat and save on gas fees
+        self.contracts[id].value = 0
+        self.contracts[id].recipientA = 0
+        self.contracts[id].recipientB = 0
+        i = 0
+        while i < self.contracts[id].numArbiters:
+            self.contracts[id].arbiters[i] = 0
+            i += 1
+        self.contracts[id].numArbiters = 0
+        self.contracts[id].votedMask = 0
+        self.contracts[id].votesForA = 0
+        self.contracts[id].votesForB = 0
+        self.contracts[id].arbiterFee = 0
+        i = 0
+        while i < 10:
+            if self.contracts[id].description[i] != 0:
+                self.contracts[id].description[i] = 0
+            i += 1
+    return(1:bool)

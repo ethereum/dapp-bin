@@ -1,0 +1,137 @@
+head
+    script(src="scripts/web3.min.js")
+    script(src="scripts/angular.min.js")
+    script(src="scripts/underscore-min.js")
+    script(src="scripts/sha3.min.js")
+    script(src="scripts/filtered_list.js")
+    script(src="config.js")
+    script(src="scripts/main.js")
+    script(src="scripts/tx_in_progress.js")
+    script(src="scripts/dialogMessage.js")
+    link(rel="stylesheet",type="text/css",href="styles/main.css")
+    link(rel="stylesheet",type="text/css",href="styles/bootstrap.min.css")
+body(ng-app="serpent_gamble"): div(ng-controller="SerpentGambleCtrl")
+    div
+        div.lightblue(style="width:20%; height:100%; position: absolute; left: 0px; top: 0px")
+            div(style="padding-top: 65px")
+            div.tabselect(ng-click="activetab = 0", ng-class="{ semilightblue: !activetab}") Play
+            div.tabselect(ng-click="activetab = 1", ng-class="{ semilightblue: activetab == 1}", ng-show="amAdmin") Admin
+            div.tabselect(ng-click="activetab = 2", ng-class="{ semilightblue: activetab == 2}") Currently open bets
+            div.tabselect(ng-click="activetab = 3", ng-class="{ semilightblue: activetab == 3}") Recently closed bets
+        div(style="width:80%; position: absolute; right: 0px")
+            div.white(style="height: 100%", vertical-align: top)
+                div(ng-show="!activetab && administration_status == -1")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td Contract address
+                                td {{ contract.address }}
+                            tr
+                                td Funds available to contract
+                                td {{ available_funds_in_eth }} ETH
+                            tr
+                                td Fee
+                                td {{ feePercent }}%
+                            tr
+                                td Account to bet with
+                                td
+                                    select(ng-model="myAccount", ng-options="x for x in accounts")
+                            tr
+                                td Winning probability
+                                td
+                                    input(type="text",placeholder="Probability",ng-model="bet.win_prob")
+                            tr
+                                td Value
+                                td
+                                    input(type="text",placeholder="Value",ng-model="bet.amount")
+                            tr
+                                td
+                                td
+                                    button.btn(ng-click="mkBet()", ng-disabled="cannot_bet") Send   
+                                    span.redtext(style="margin-left: 20px", ng-show="cannot_bet") {{ cannot_bet_error_message }}
+                div(ng-show="!activetab && administration_status > -1")
+                    center(style="margin:100px 100px")
+                        div This contract is currently undergoing administrative updates, and so betting is NOT recommended as the administrator can cheat you (eg. by withdrawing all funds if a bet comes along that the administrator sees will give you large winnings)
+                div(ng-show="activetab == 1 && administration_status == -1")
+                    center(style="margin:100px 100px")
+                        div In order to perform administrative actions, you must first send a transaction to unlock the contract; you will then need to wait for 5 confirmations before doing anything.
+                        div(style="margin-top:30px")
+                            button.btn(ng-click="unlockForAdministration()") Submit
+                        div(style="margin-top:30px", ng-show="admin.lastSubmittednewSeed") The last seed that you submitted is 
+                div(ng-show="activetab == 1 && administration_status > 0")
+                    center(style="margin:100px 0px")
+                        div
+                            progress(max="100",value="{{ (6 - administration_status) * 17 }}")
+                        div Blocks remaining: {{ administration_status }}
+                div(ng-show="activetab == 1 && administration_status == 0")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td Hash of old seed
+                                td(style="width:660px") {{ seedhash }}
+                            tr
+                                td Old seed (leave blank if first time)
+                                td
+                                    input(type="text",placeholder="Probability",ng-model="admin.oldSeed")
+                            tr
+                                td New seed
+                                td
+                                    input(type="text",placeholder="Value",ng-model="admin.newSeed")
+                                    span Make sure you save this value after generating it!
+                            tr
+                                td New seed hash
+                                td {{ admin.newSeedhash }}
+                            tr
+                                td
+                                td
+                                    button.btn(ng-click="genSeed()") Generate seed
+                                    span(style="margin-left: 13px") &nbsp;
+                                    button.btn(ng-click="changeSeed()", ng-disabled="admin.setSeedhashDisabled") Send   
+                                    span.redtext(style="margin-left: 20px", ng-show="admin.setSeedhashDisabled") {{ admin.cannotSetSeedhashErrorMessage }}
+                            tr
+                                td Fee
+                                td
+                                    input(type="text",placeholder="Fee",ng-model="admin.fee")
+                                    span (0 <= f <= 0.999, eg. f = 0.008 represents 0.8% fee)
+                            tr
+                                td
+                                td
+                                    button.btn(ng-click="setFee()", ng-disabled="admin.setFeeDisabled") Set fee
+                                    span.redtext(style="margin-left: 20px", ng-show="admin.setFeeDisabled") {{ admin.cannotSetFeeErrorMessage }}
+                            tr
+                                td Amount to withdraw
+                                td
+                                    input(type="text",placeholder="Fee",ng-model="admin.withdrawalAmount") 
+                                    span (Maximum: {{ available_funds_in_eth }})
+                            tr
+                                td
+                                td
+                                    button.btn(ng-click="withdraw()", ng-disabled="admin.withdrawDisabled") Withdraw
+                                    span.redtext(style="margin-left: 20px", ng-show="admin.withdrawDisabled") {{ admin.cannotWithdrawErrorMessage }}
+                div(ng-show="activetab == 2")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td Bettor
+                                td Potential winnings
+                                td Probability
+                            tr(ng-repeat="bet in bets")
+                                td {{ bet.bettor }}
+                                td {{ bet.potentialWinnings }}
+                                td {{ bet.prob }}
+                div(ng-show="activetab == 3")
+                    center
+                        table(style="margin:100px 0px",cellpadding="20px")
+                            tr
+                                td Bettor
+                                td Potential winnings
+                                td Probability
+                            tr(ng-repeat="bet in prevbets")
+                                td.green(ng-show="bet.result == 'win'") {{ bet.bettor }}
+                                td.red(ng-show="bet.result == 'loss'") {{ bet.bettor }}
+                                td.green(ng-show="bet.result == 'win'") {{ bet.potentialWinnings }}
+                                td.red(ng-show="bet.result == 'loss'") {{ bet.potentialWinnings }}
+                                td.green(ng-show="bet.result == 'win'") {{ bet.prob }}
+                                td.red(ng-show="bet.result == 'loss'") {{ bet.prob }}
+        div(tx-in-progress)
+        div(message)

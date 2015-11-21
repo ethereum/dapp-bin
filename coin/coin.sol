@@ -6,21 +6,16 @@
 #require named, owned, coin
 
 contract Coin {
-	function sendCoinFrom(address _from, uint _val, address _to) {}
-	function sendCoin(uint _val, address _to) {}
-	function coinBalance() constant returns (uint _r) {}
-	function coinBalanceOf(address _a) constant returns (uint _r) {}
-	function approve(address _a) {}
-	function isApproved(address _proxy) constant returns (bool _r) {}
-	function isApprovedFor(address _target, address _proxy) constant returns (bool _r) {}
+	function sendCoinFrom(address _from, uint _val, address _to);
+	function sendCoin(uint _val, address _to);
+	function coinBalance() constant returns (uint _r);
+	function coinBalanceOf(address _a) constant returns (uint _r);
+	function approve(address _a);
+	function isApproved(address _proxy) constant returns (bool _r);
+	function isApprovedFor(address _target, address _proxy) constant returns (bool _r);
 }
 
-contract GavCoin is Coin, named("GavCoin"), coin("GAV", 1000), owned {
-	function GavCoin() {
-		m_balances[owner] = 1000000000;
-		m_lastNumberMined = block.number;
-	}
-	
+contract BasicCoin is Coin {
 	function sendCoinFrom(address _from, uint _val, address _to) {
 		if (m_balances[_from] >= _val && m_approved[_from][msg.sender]) {
 			m_balances[_from] -= _val;
@@ -58,6 +53,16 @@ contract GavCoin is Coin, named("GavCoin"), coin("GAV", 1000), owned {
 		return m_approved[_target][_proxy];
 	}
 	
+	mapping (address => uint) m_balances;
+	mapping (address => mapping (address => bool)) m_approved;
+}
+
+contract GavCoin is BasicCoin, named("GavCoin"), coin("GAV", 1000), owned {
+	function GavCoin() {
+		m_balances[owner] = tota;
+		m_lastNumberMined = block.number;
+	}
+	
 	function mine() {
 		uint r = block.number - m_lastNumberMined;
 		if (r > 0) {
@@ -68,12 +73,9 @@ contract GavCoin is Coin, named("GavCoin"), coin("GAV", 1000), owned {
 			m_lastNumberMined = block.number;
 		}
 	}
-	
-	mapping (address => uint) m_balances;
-	mapping (address => mapping (address => bool)) m_approved;
+
 	uint m_lastNumberMined;
 }
-
 
 /*
 var GavCoin = web3.eth.contractFromAbi([{"constant":true,"inputs":[{"name":"_target","type":"address"},{"name":"_proxy","type":"address"}],"name":"isApprovedFor","outputs":[{"name":"_r","type":"bool"}]},{"constant":true,"inputs":[{"name":"_proxy","type":"address"}],"name":"isApproved","outputs":[{"name":"_r","type":"bool"}]},{"constant":false,"inputs":[{"name":"_from","type":"address"},{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoinFrom","outputs":[]},{"constant":false,"inputs":[],"name":"mine","outputs":[]},{"constant":true,"inputs":[{"name":"_a","type":"address"}],"name":"coinBalanceOf","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_val","type":"uint256"},{"name":"_to","type":"address"}],"name":"sendCoin","outputs":[]},{"constant":true,"inputs":[],"name":"coinBalance","outputs":[{"name":"_r","type":"uint256"}]},{"constant":false,"inputs":[{"name":"_a","type":"address"}],"name":"approve","outputs":[]}]);

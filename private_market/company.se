@@ -1,0 +1,153 @@
+# balance: current share holdings, excluding locked
+# shareholdings
+# minShares: minimum amount that shareholder is allowed to have
+# maxShares: maximum amount that shareholder is allowed to have
+# locked: current share holdings locked in contracts (eg.
+# exchange orders, options, etc)
+# lockedTo: a mapping of which contract funds are locked to
+# withdrawers: a mapping of address -> the maximum amount of shares
+# that a user authorizes each particular contract to withdraw from
+# them
+#
+# Note: this contract explicitly recognizes two types of
+# ownership: end-users and contracts. Shares cannot be held by
+# a contract; they can only be "locked to" a contract. These
+# shares are then considered part of the shareholder's balance,
+# and thus count toward the shareholder's maximum holdings
+# (but not minimum holdings!), but the contract has the ability
+# and sole discretion to release them to any user, provided that
+# doing so will not increase that user's shareholdings beyond
+# their maximum.
+
+data shares[](balance, minShares, maxShares, locked, withdrawers[], lockedTo[])
+data totalIssued
+data authorizedContracts[]
+
+event CoinSent(from:address:indexed, value:uint256, to:address:indexed)
+event CoinIssued(value:uint256, to:address:indexed)
+
+macro MAXVAL: 2**128
+
+
+# Send shares to another account
+def sendShares(value:uint256, to:address):
+    if self.shares[msg.sender].balance - value < self.shares[msg.sender].minShares:
+        return(0:bool)
+    if self.shares[to].balance + self.shares[to].locked + value > self.shares[to].maxShares:
+        return(0:bool)
+    if value < 0 or value > MAXVAL:
+        return(0:bool)
+    self.shares[msg.sender].balance -= value
+    self.shares[to].balance += value
+    log(type=CoinSent, msg.sender, value, to)
+    return(1:bool)
+
+
+# Proxy method in order to partially comply with standardized
+# contract API
+def sendCoin(value:uint256, to:address):
+    if self.shares[msg.sender].balance - value < self.shares[msg.sender].minShares:
+        return(0:bool)
+    if self.shares[to].balance + self.shares[to].locked + value > self.shares[to].maxShares:
+        return(0:bool)
+    if value < 0 or value > MAXVAL:
+        return(0:bool)
+    self.shares[msg.sender].balance -= value
+    self.shares[to].balance += value
+    log(type=CoinSent, msg.sender, value, to)
+    return(1:bool)
+
+
+# Authorize a contract to lock up some amount of shares
+def authorizeLockup(to:address, value:uint256):
+    self.shares[msg.sender].withdrawers[to] += value
+
+
+# Lock up shares (must be called by the locking contract)
+def lockupShares(from:address, value:uint256):
+    if self.shares[from].balance - value < self.shares[from].minShares:
+        return(0:bool)
+    if not self.authorizedContracts[msg.sender]:
+        return(0:bool)
+    if self.shares[from].withdrawers[msg.sender] < value:
+        return(0:bool)
+    self.shares[from].balance -= value
+    self.shares[from].locked += value
+    self.shares[from].withdrawers[msg.sender] -= value
+    self.shares[from].lockedTo[msg.sender] += value
+    return(1:bool)
+
+
+# Release locked shares
+def releaseLockedShares(from:address, value:uint256, to:address):
+    if self.shares[from].lockedTo[msg.sender] < value:
+        return(0:bool)
+    if self.shares[to].balance + self.shares[to].locked + value > self.shares[to].maxShares and (from != to):
+        return(0:bool)
+    self.shares[from].locked -= value
+    self.shares[from].lockedTo[from] -= value
+    self.shares[to].balance += value
+    return(1:bool)
+
+
+# Set the max shares that an account can hold
+def setShareholderMaxShares(shareholder, shares):
+    if msg.sender == $ADMIN_ACCOUNT:
+        self.shares[shareholder].maxShares = shares
+
+
+# Set the min shares that an account must hold
+def setShareholderMinShares(shareholder, shares):
+    if msg.sender == $ADMIN_ACCOUNT:
+        self.shares[shareholder].minShares = shares
+
+
+# Get balance
+def getCurrentShareholdingsOf(_addr:address):
+    return(self.shares[_addr].balance)
+
+
+# Get balance (standard API-compliant method). This returns
+# spendable balance only
+def coinBalanceOf(_addr:address):
+    return(self.shares[_addr].balance - self.shares[_addr].minShares)
+
+
+# Get locked shareholdings of an account
+def getLockedShareholdingsOf(_addr:address):
+    return(self.shares[_addr].locked)
+
+
+# Issue shares
+def issueShares(value:uint256, to:address):
+    if msg.sender == $ADMIN_ACCOUNT:
+        self.shares[to].balance += value
+        log(type=CoinIssued, value, to)
+        self.totalIssued += value
+
+
+# Get the total number of shares issued
+def getTotalIssued():
+    return(self.totalIssued:uint256)
+
+
+# Get the minimum shares that an account is allowed to hold
+def getShareholderMinShares(shareholder:address):
+    return(self.shares[shareholder].minShares:uint256)
+
+
+# Get the maximum shares that an account is allowed to hold
+def getShareholderMaxShares(shareholder:address):
+    return(self.shares[shareholder].maxShares:uint256)
+
+
+# Set whether or not a particular contract is authorized to
+# accept deposits (0=false, 1=true)
+def setContractAuthorized(contract:address, authorized:bool):
+    if msg.sender == $ADMIN_ACCOUNT:
+        self.authorizedContracts[contract] = authorized
+
+
+# Get the administrator account
+def getAdmin():
+    return($ADMIN_ACCOUNT:address)
