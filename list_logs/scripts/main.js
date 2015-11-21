@@ -10,7 +10,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
     var eth = web3.eth;
     var mainContract = eth.contract(window.accounts.main.abi).at(window.accounts.main.address);
     $scope.mc = mainContract;
-    $scope.boundary = 330000;
+    $scope.boundary = 420000;
     $scope.latestBlock = 0;
     web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
     $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
