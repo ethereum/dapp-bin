@@ -20,17 +20,19 @@ function ListLogsCtrl($scope, $rootScope, $http) {
     $scope.myAccount = "";
     window.mainScope = $scope;
     var onBlock = function(err, block) {
-        $scope.latestBlock = eth.blockNumber;
-        mainContract.getLatestBreak(function(err, res) {
-            var res2 = web3.toDecimal(res);
-            if (res2 != $scope.boundary) {
-                $scope.boundary = res2;
-                console.log('updating filter', $scope.boundary);
-                $scope.logs.shutdown();
-                $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
-                $scope.logs = new filtered_list($scope.logFilter);
-            }
-            if (!$scope.$$phase) $scope.$apply();
+        eth.getBlockNumber(function(err, blockNumber) {
+            $scope.latestBlock = blockNumber;
+            mainContract.getLatestBreak(function(err, res) {
+                var res2 = web3.toDecimal(res);
+                if (res2 != $scope.boundary) {
+                    $scope.boundary = res2;
+                    console.log('updating filter', $scope.boundary);
+                    $scope.logs.shutdown();
+                    $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
+                    $scope.logs = new filtered_list($scope.logFilter);
+                }
+                if (!$scope.$$phase) $scope.$apply();
+            });
         });
     }
     setInterval(function() { if (!$scope.$$phase) $scope.$apply(); }, 200);
