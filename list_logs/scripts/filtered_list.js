@@ -54,46 +54,50 @@ function filtered_list(filter, cb) {
     eth.filter('latest', function(err, block) { me.filterGrabber(err, block); })
     // Update the confirmation status of a log
     this.updateStatus = function(log) {
-        eth.getTransaction(log.transactionHash, function(err, tx) {
-            if (err) return;
-            eth.getTransactionCount(tx.from, function(err, nonce) {
+        eth.getBlockNumber(function(err, blockNumber) {
+            eth.getTransaction(log.transactionHash, function(err, tx) {
                 if (err) return;
-                // Set the status
-                var oldStatus = log.status;
-                if (nonce >= tx.from && !tx.blockNumber)
-                    log.status = "dblspent";
-                else if (!tx.blockNumber)
-                    log.status = "pending";
-                else if (eth.blockNumber < tx.blockNumber + SAFE_CONFIRMATIONS)
-                    log.status = "confirming";
-                else
-                    log.status = "confirmed";
-                if (log.status != oldStatus)
-                    console.log('setting status of log', log.transactionHash, 'to', log.status);
-                // Call the callback
-                me.cb();
+                eth.getTransactionCount(tx.from, function(err, nonce) {
+                    if (err) return;
+                    // Set the status
+                    var oldStatus = log.status;
+                    if (nonce >= tx.from && !tx.blockNumber)
+                        log.status = "dblspent";
+                    else if (!tx.blockNumber)
+                        log.status = "pending";
+                    else if (blockNumber < tx.blockNumber + SAFE_CONFIRMATIONS)
+                        log.status = "confirming";
+                    else
+                        log.status = "confirmed";
+                    if (log.status != oldStatus)
+                        console.log('setting status of log', log.transactionHash, 'to', log.status);
+                    // Call the callback
+                    me.cb();
+                }); 
             }); 
-        }); 
+        });
     }
     this.filterGrabber = function(err, block) {
-        block = eth.getBlock(block);
-        // Grab all the results within the last SAFE_CONFIRMATIONS confirmations,
-        // check that they are still valid, and re-sort them just in case as
-        // filter.watch does sometimes give results out of order
-        var grab = [];
-        while (me.logs.length && me.logs[me.logs.length - 1].blockNumber >= block.number - SAFE_CONFIRMATIONS) {
-            var lastLog = me.logs.pop();
-            me.updateStatus(lastLog);
-            // If the transaction is not in a block and it has already been 300 seconds,
-            // then forget it for the time being
-            if (me.now() < firstSeenTimestamps + 300 || (lastLog.status == "confirming" || lastLog.status == "confirmed"))
-                grab.push(lastLog)
-            else
-                me.logMap[lastLog.transactionHash] = false;
-        }
-        grab = grab.sort(function(a, b) { return a.blockNumber > b.blockNumber });
-        grab.map(function(x) { me.logs.push(x) });
-        me.cb();
+        eth.getBlock(block, function(err, block) {
+            if (err) return;
+            // Grab all the results within the last SAFE_CONFIRMATIONS confirmations,
+            // check that they are still valid, and re-sort them just in case as
+            // filter.watch does sometimes give results out of order
+            var grab = [];
+            while (me.logs.length && me.logs[me.logs.length - 1].blockNumber >= block.number - SAFE_CONFIRMATIONS) {
+                var lastLog = me.logs.pop();
+                me.updateStatus(lastLog);
+                // If the transaction is not in a block and it has already been 300 seconds,
+                // then forget it for the time being
+                if (me.now() < firstSeenTimestamps + 300 || (lastLog.status == "confirming" || lastLog.status == "confirmed"))
+                    grab.push(lastLog)
+                else
+                    me.logMap[lastLog.transactionHash] = false;
+            }
+            grab = grab.sort(function(a, b) { return a.blockNumber > b.blockNumber });
+            grab.map(function(x) { me.logs.push(x) });
+            me.cb();
+        });
     };
     this.shutdown = function() { me.filterGrabber = function(){}; };
 }
