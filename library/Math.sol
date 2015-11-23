@@ -25,17 +25,20 @@ library Math {
         return -57896044618658097711785492504343953926634992332820282019728792003956564819968;
     }
     
-    /// @dev Computes the square root of x
-    function sqrt(uint x) returns (uint) {
-        uint y = x;
-        while( true ) {
-            uint z = (y + (x/y))/2;
-            uint w = (z + (x/z))/2;
-            if( w == y) {
-                if( w < y ) return w;
-                else return y;
-            }
-            y = w;
+    /// @why3 ensures { to_int result * to_int result <= to_int arg_x < (to_int result + 1) * (to_int result + 1) }
+    function sqrt(uint x) returns (uint y) {
+        if (x == 0) return 0;
+        else if (x <= 3) return 1;
+        uint z = (x + 1) / 2;
+        y = x;
+        while (z < y)
+        /// @why3 invariant { to_int !_z = div ((div (to_int arg_x) (to_int !_y)) + (to_int !_y)) 2 }
+        /// @why3 invariant { to_int arg_x < (to_int !_y + 1) * (to_int !_y + 1) }
+        /// @why3 invariant { to_int arg_x < (to_int !_z + 1) * (to_int !_z + 1) }
+        /// @why3 variant { to_int !_y }
+        {
+            y = z;
+            z = (x / z + z) / 2;
         }
     }
 
@@ -45,7 +48,7 @@ library Math {
     }
     
      /// @dev Returns the linear interpolation between a and b
-    function interpolate(uint x_a, uint y_a, uint x_b, uint y_b, uint delta) returns (uint x, uint y) {
+    function lerp(uint x_a, uint y_a, uint x_b, uint y_b, uint delta) returns (uint x, uint y) {
         x = x_a * delta + x_b * delta;
         y = y_a * delta + y_b * delta;
         return (x, y);
