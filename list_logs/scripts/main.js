@@ -27,6 +27,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
             if (!$scope.$$phase) $scope.$apply();
             $scope.latestBlock = 420002;
             mainContract.getLatestBreak.call({from: eth.accounts[0]}, function(err, res) {
+                alert(1);
                 $scope.boundary = 420003;
                 var res2 = web3.toDecimal(res);
                 if (res2 != $scope.boundary) {
