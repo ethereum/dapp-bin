@@ -156,6 +156,7 @@ contract TwoPhaseAuction {
                 success = target.acceptAuctionResult(0, 0, "");
             }
             AuctionFinalized(_ar);
+            owner.send(this.balance);
             if (!success) { while (1 == 1) { _nbi = _nbi; } }
             return(true);
         }

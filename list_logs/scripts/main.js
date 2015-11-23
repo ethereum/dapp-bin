@@ -10,7 +10,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
     var eth = web3.eth;
     var mainContract = eth.contract(window.accounts.main.abi).at(window.accounts.main.address);
     $scope.mc = mainContract;
-    $scope.boundary = 330000;
+    $scope.boundary = 419998;
     $scope.latestBlock = 0;
     web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
     $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
@@ -20,20 +20,29 @@ function ListLogsCtrl($scope, $rootScope, $http) {
     $scope.myAccount = "";
     window.mainScope = $scope;
     var onBlock = function(err, block) {
-        $scope.latestBlock = eth.blockNumber;
-        mainContract.getLatestBreak(function(err, res) {
-            var res2 = web3.toDecimal(res);
-            if (res2 != $scope.boundary) {
-                $scope.boundary = res2;
-                console.log('updating filter', $scope.boundary);
-                $scope.logs.shutdown();
-                $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
-                $scope.logs = new filtered_list($scope.logFilter);
-            }
+        $scope.boundary = 420001;
+        if (!$scope.$$phase) $scope.$apply();
+        eth.getBlockNumber(function(err, blockNumber) {
+            $scope.boundary = 1000000 + blockNumber;
             if (!$scope.$$phase) $scope.$apply();
+            $scope.latestBlock = 420002;
+            mainContract.getLatestBreak.call({from: eth.accounts[0]}, function(err, res) {
+                alert(1);
+                $scope.boundary = 420003;
+                var res2 = web3.toDecimal(res);
+                if (res2 != $scope.boundary) {
+                    $scope.boundary = res2;
+                    console.log('updating filter', $scope.boundary);
+                    $scope.logs.shutdown();
+                    $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
+                    $scope.logs = new filtered_list($scope.logFilter);
+                }
+                if (!$scope.$$phase) $scope.$apply();
+            });
         });
     }
     setInterval(function() { if (!$scope.$$phase) $scope.$apply(); }, 200);
+    $scope.boundary = 419999;
     eth.filter('latest', onBlock);
     onBlock();
     $scope.addLog = function() {

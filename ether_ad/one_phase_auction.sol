@@ -151,6 +151,7 @@ contract OnePhaseAuction {
                 AuctionFinalized(totalRevenue);
             else
                 AuctionFinalized(bestBidValue);
+            owner.send(this.balance);
             if (!success) { while (1 == 1) { _nbi = _nbi; } }
             return(true);
         }
