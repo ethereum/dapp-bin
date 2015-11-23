@@ -23,7 +23,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
         $scope.boundary = 420001;
         if (!$scope.$$phase) $scope.$apply();
         eth.getBlockNumber(function(err, blockNumber) {
-            $scope.boundary = 420002;
+            $scope.boundary = 1000000 + blockNumber;
             if (!$scope.$$phase) $scope.$apply();
             $scope.latestBlock = blockNumber;
             mainContract.getLatestBreak(function(err, res) {
