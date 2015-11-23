@@ -1,3 +1,4 @@
+
 library Math {
 
     /// @dev Computes the modular exponential (x ** k) % m.
@@ -171,5 +172,81 @@ library Math {
             start += 1;
         }
     }
+    
+    /// @dev returns binomial coefficient of n, k
+    function binomial(uint n, uint k) returns (uint) {
+        uint nFact = factor(n);
+        uint kFact = factor(k);
+        uint nMkFact = factor(n - k);
+        return nFact/(kFact - nMkFact);
+    }
+    
+    /// @dev return greatest common divisor
+    function gcd(int a, int b) returns (int) {
+        int c;
+        while (b != 0) {
+            c = a % b;
+            a = b;
+            b = c;
+        }
+        return a;
+    }
+    
+    /// @dev returns the extended Euclid Algorithm or extended GCD.
+    function egcd(int a, int b) returns (int [3]) {
+        int signX;
+        int signY;
+        
+        if (a < 0) signX = -1;
+        else signX = 1;
+        
+        if (b < 0) signY = -1;
+        else signY = 1;
+        
+        int x = 0; int y = 1;
+        
+        int oldX = 1; int oldY = 0;
+        
+        int q; int r; int m; int n;
+        a = Math.abs(a);
+        b = Math.abs(b);
+
+        while (a != 0) {
+            q = b / a;
+            r = b % a;
+            m = x - oldX * q;
+            n = y - oldY * q;
+            b = a;
+            a = r;
+            x = oldX;
+            y = oldY;
+            oldX = m;
+            oldY = n;
+        }
+        int[3] memory answer;
+        answer[0] = b;
+        answer[1] = signX * x;
+        answer[2] = (signY * y);
+        
+        return answer;
+    }
+    
+    /// @dev calculates the least common multiple amongst two integers
+    function lcm(int num1, int num2) returns (int) {
+        return abs(num1 * num2) / gcd(num1, num2);
+    }
+    
+    /// @dev calculates the modular inverse of a
+    function modInverse(int a, int m) returns (int) {
+        int[3] memory r = egcd(a, m);
+        if (r[0] != 1) throw;
+        return r[1] % m;
+    }
+    
+    /*function createCalcFunc() returns (string) {
+        
+    }*/
+    
+    
 
 }
