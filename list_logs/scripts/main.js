@@ -25,8 +25,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
         eth.getBlockNumber(function(err, blockNumber) {
             $scope.boundary = 1000000 + blockNumber;
             if (!$scope.$$phase) $scope.$apply();
-            $scope.latestBlock = blockNumber;
-            alert(mainContract.address);
+            $scope.latestBlock = 420002;
             mainContract.getLatestBreak.call({from: eth.accounts[0]}, function(err, res) {
                 $scope.boundary = 420003;
                 var res2 = web3.toDecimal(res);
