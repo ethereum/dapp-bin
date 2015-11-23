@@ -1,6 +1,5 @@
 library Math {
-    
-        
+
     /// @dev Computes the modular exponential (x ** k) % m.
     function modExp(uint x, uint k, uint m) returns (uint r) {
         r = 1;

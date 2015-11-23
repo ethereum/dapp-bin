@@ -40,7 +40,10 @@ contract adStorer {
             if (initializedTo == 8) return true;
             else return false;
         }
+        return true;
     }
+
+    function isInitialized() returns (bool) { return initializedTo == 8; }
 
     function acceptAuctionResult(address winner, uint256 value, string metadata) returns (bool) {
         for (uint256 i = 0; i < 8; i++) {
@@ -51,6 +54,7 @@ contract adStorer {
                 }
                 if (i < 4) OnePhaseAuction(msg.sender).initialize(this, baseDuration, durationBumpTo, minIncrementMillis, i);
                 else TwoPhaseAuction(msg.sender).initialize(this, hashSubmissionPeriod, hashRevealPeriod, valueSubmissionSubsidyMillis, i - 3);
+                owner.send(this.balance);
                 return true;
             }
         }

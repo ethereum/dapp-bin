@@ -23,10 +23,10 @@ def sendCoinFrom(_from:address, _value:uint256, _to:address):
         return(1:bool)
     return(0:bool)
 
-def coinBalance():
+def const coinBalance():
     return(self.accounts[msg.sender].balance)
 
-def coinBalanceOf(_addr:address):
+def const coinBalanceOf(_addr:address):
     return(self.accounts[_addr].balance)
 
 def approve(_addr:address):
