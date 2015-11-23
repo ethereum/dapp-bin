@@ -10,7 +10,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
     var eth = web3.eth;
     var mainContract = eth.contract(window.accounts.main.abi).at(window.accounts.main.address);
     $scope.mc = mainContract;
-    $scope.boundary = 420000;
+    $scope.boundary = 419998;
     $scope.latestBlock = 0;
     web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
     $scope.logFilter = mainContract.Log({}, {fromBlock: $scope.boundary});
@@ -20,9 +20,14 @@ function ListLogsCtrl($scope, $rootScope, $http) {
     $scope.myAccount = "";
     window.mainScope = $scope;
     var onBlock = function(err, block) {
+        $scope.boundary = 420001;
+        if (!$scope.$$phase) $scope.$apply();
         eth.getBlockNumber(function(err, blockNumber) {
+            $scope.boundary = 420002;
+            if (!$scope.$$phase) $scope.$apply();
             $scope.latestBlock = blockNumber;
             mainContract.getLatestBreak(function(err, res) {
+                $scope.boundary = 420003;
                 var res2 = web3.toDecimal(res);
                 if (res2 != $scope.boundary) {
                     $scope.boundary = res2;
@@ -36,6 +41,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
         });
     }
     setInterval(function() { if (!$scope.$$phase) $scope.$apply(); }, 200);
+    $scope.boundary = 419999;
     eth.filter('latest', onBlock);
     onBlock();
     $scope.addLog = function() {
