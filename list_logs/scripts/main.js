@@ -26,7 +26,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
             $scope.boundary = 1000000 + blockNumber;
             if (!$scope.$$phase) $scope.$apply();
             $scope.latestBlock = blockNumber;
-            mainContract.getLatestBreak(function(err, res) {
+            /*mainContract.getLatestBreak(function(err, res) {
                 $scope.boundary = 420003;
                 var res2 = web3.toDecimal(res);
                 if (res2 != $scope.boundary) {
@@ -37,7 +37,7 @@ function ListLogsCtrl($scope, $rootScope, $http) {
                     $scope.logs = new filtered_list($scope.logFilter);
                 }
                 if (!$scope.$$phase) $scope.$apply();
-            });
+            });*/
         });
     }
     setInterval(function() { if (!$scope.$$phase) $scope.$apply(); }, 200);
