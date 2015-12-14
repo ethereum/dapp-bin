@@ -281,7 +281,7 @@ contract multisig {
 
     // logged events:
     // Funds has arrived into the wallet (record how much).
-    event Deposit(address from, uint value);
+    event Deposit(address _from, uint value);
     // Single transaction going out of the wallet (record who signed for it, how much, and to whom it's going).
     event SingleTransact(address owner, uint value, address to, bytes data);
     // Multi-sig transaction going out of the wallet (record who signed for it last, the operation hash, how much, and to whom it's going).
