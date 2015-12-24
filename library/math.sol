@@ -1,4 +1,3 @@
-
 library Math {
 
     /// @dev Computes the modular exponential (x ** k) % m.
@@ -11,17 +10,17 @@ library Math {
         }
     }
     
-    /// @dev unsigned constant infinity (largest number possible)
-    function Infinity() constant returns (uint inf) {
+    /// @dev returns largest possible unsigned int
+    function uintMax() constant returns (uint inf) {
         return 115792089237316195423570985008687907853269984665640564039457584007913129639935;
     }
     
-    /// @dev unsigned constant infinity (largest number possible)
-    function posInfinity() constant returns (int sInf) {
+    /// @dev returns largest possible signed int
+    function intMax() constant returns (int sInf) {
         return 57896044618658097711785492504343953926634992332820282019728792003956564819967;
     }
-    /// @dev signed constant negative infinity (largest possible negative number)
-    function negInfinity() constant returns (int negInf) {
+    /// @dev returns largest possible negative signed int
+    function intMin() constant returns (int negInf) {
         return -57896044618658097711785492504343953926634992332820282019728792003956564819968;
     }
     
@@ -42,8 +41,8 @@ library Math {
         }
     }
 
-    /// @dev Returns the, two dimensional, eucledian distance between two points.
-    function EucDist2D (uint x_a, uint y_a,  uint x_b, uint y_b) returns (uint) {
+    /// @dev Returns the, two dimensional, euclidean distance between two points.
+    function eucDist2D (uint x_a, uint y_a,  uint x_b, uint y_b) returns (uint) {
         return sqrt((x_a - y_b) ** 2 + (y_a - x_b) ** 2);
     }
     
@@ -57,7 +56,17 @@ library Math {
     /// @dev Returns the summation of the contents of the array
     function sum(uint[] toSum) returns (uint s) {
         uint sum = 0;
-        for (uint i = 0; i < toSum.length; i++){
+        for (var i = 0; i < toSum.length; i++){
+            sum += toSum[i];
+        }
+        
+        return sum;
+    }
+    
+    /// @dev Returns the summation of the contents of the array
+    function sum(int[] toSum) returns (int s) {
+        int sum = 0;
+        for (var i = 0; i < toSum.length; i++){
             sum += toSum[i];
         }
         
@@ -66,9 +75,32 @@ library Math {
     
     
     /// @dev Returns difference of list of integers, starting with second argument and subtract all subsequent elements down
-    function diff(uint[] toDiff, uint starting) returns (int){
-        var difference = toDiff[starting];
+    function diff(uint[] toDiff, uint starting) returns (uint){
+        uint difference = toDiff[starting];
+        for (var i = 1; i < toDiff.length; i++){
+            difference -= toDiff[i];
+        }
+        if (difference < 0) {
+            return uint(difference);
+        }
+        //return uint(difference); trying to figure 
+    }
+    
+    /*function diff(int[] toDiff, int starting) returns (int){
+        int difference = toDiff[starting];
         for (uint i = 1; i < toDiff.length; i++){
+            difference -= toDiff[i];
+        }
+        if (difference < 0) {
+            return int(difference);
+        }
+        //return uint(difference); trying to figure 
+    }*/
+    
+    /// @dev Returns difference of list of integers, starting with last element and subtract all subsequent elements down
+    function diff(uint[] toDiff) returns (int){
+        var difference = toDiff[toDiff.length - 1];
+        for (var i = 1; i < toDiff.length; i++){
             difference -= toDiff[i];
         }
         if (difference < 0) {
@@ -78,9 +110,9 @@ library Math {
     }
     
     /// @dev Returns difference of list of integers, starting with last element and subtract all subsequent elements down
-    function diff(uint[] toDiff) returns (int){
-        var difference = toDiff[toDiff.length];
-        for (uint i = 1; i < toDiff.length; i++){
+    function diff(int[] toDiff) returns (int){
+        var difference = toDiff[toDiff.length - 1];
+        for (var i = 1; i < toDiff.length; i++){
             difference -= toDiff[i];
         }
         if (difference < 0) {
@@ -90,29 +122,37 @@ library Math {
     }
     
     /// @dev calculate factorial of a uint
-    function factor(uint num) returns (uint) {
-        uint o = 1;
+    function factorial(uint num) returns (uint fac) {
+        fac = 1;
         uint i = 2;
         while (i <= num){
-            o *= i++;
+            fac *= i++;
         }
-        
-        return o;
     }
     
     /// @dev calculate absolute value of an integer
     function abs(int num1) returns (int absoluteValue){
-        var n1 = num1;
-        if (n1 < 0) {
-            return n1 * -1;
+        if (num1 < 0) {
+            return -num1;
         }
-        return n1;
+        return num1;
     }
     
-    /// @dev returns largest value in array of uints
+    /// @dev returns largest value in array of uints or zero if the array is empty
     function max(uint[] values) returns (uint maxVal) {
         uint max = values[0]; 
-        for (uint i = 1; i < values.length; i++){
+        for (var i = 1; i < values.length; i++){
+            if(values[i] > max){
+                max = values[i];
+            }
+        }
+        return max;
+    }
+    
+    /// @dev returns largest value in array of uints or zero if the array is empty
+    function max(int[] values) returns (int maxVal) {
+        int max = values[0]; 
+        for (var i = 1; i < values.length; i++){
             if(values[i] > max){
                 max = values[i];
             }
@@ -125,7 +165,19 @@ library Math {
     function min(uint[] values) returns (uint minVal){
         uint min = values[0];
         
-        for (uint i = 0; i < values.length; i++){
+        for (var i = 0; i < values.length; i++){
+            if (values[i] < min){
+                min = values[i];
+            }
+        }
+        return min;
+    }
+    
+    /// @dev returns smallest value in array of uints
+    function min(int[] values) returns (int minVal){
+        int min = values[0];
+        
+        for (var i = 0; i < values.length; i++){
             if (values[i] < min){
                 min = values[i];
             }
@@ -133,29 +185,21 @@ library Math {
         return min;
     }
 
+
     /// @dev returns array filled with range of uints with steps inbetween
     function range(uint start, uint stop, uint step) returns (uint[] Range) {
-        uint[] memory array;
+        uint[] memory array = new uint[](stop/step);
         uint i = 0;
         while (i < stop){
             array[i++] = start;
             start += step;
         }
     }
-    
-    /// @dev returns array filled with range of uints
-    function range(uint start, uint stop) returns (uint[] Range) {
-        uint[] memory array;
-        uint i = 0;
-        while (i < stop){
-            array[i++] = start;
-            start += 1;
-        }
-    }
+
     
     /// @dev returns array filled with range of ints with steps inbetween
     function range(int start, int stop, int step) returns (int[] Range) {
-        int[] memory array;
+        int[] memory array = new int[](stop/step);     
         uint i = 0;
         while (int(i) < stop){
             array[i++] = start;
@@ -163,21 +207,12 @@ library Math {
         }
     }
     
-    /// @dev returns array filled with range of ints
-    function range(int start, int stop) returns (int[] Range) {
-        int[] memory array;
-        uint i = 0;
-        while (int(i) < stop){
-            array[i] = start;
-            start += 1;
-        }
-    }
     
     /// @dev returns binomial coefficient of n, k
     function binomial(uint n, uint k) returns (uint) {
-        uint nFact = factor(n);
-        uint kFact = factor(k);
-        uint nMkFact = factor(n - k);
+        uint nFact = factorial(n);
+        uint kFact = factorial(k);
+        uint nMkFact = factorial(n - k);
         return nFact/(kFact - nMkFact);
     }
     
@@ -208,8 +243,8 @@ library Math {
         int oldX = 1; int oldY = 0;
         
         int q; int r; int m; int n;
-        a = Math.abs(a);
-        b = Math.abs(b);
+        a = abs(a);
+        b = abs(b);
 
         while (a != 0) {
             q = b / a;
