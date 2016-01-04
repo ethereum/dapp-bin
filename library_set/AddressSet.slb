@@ -1,6 +1,6 @@
-/// @title AddressMapper
+/// @title AddressSet
 /// @author Andreas Olofsson (andreas1980@gmail.com)
-/// @dev AddressMapper is a set backed by an iterable map with (address, bool) entries.
+/// @dev AddressSet is a set backed by an iterable map with (address, bool) entries.
 /// O(1) insert, find, and remove.
 /// Stores a boolean, and an array index (uint) for each element, in addition to the address.
 /// This is for easy lookup, and for making iteration possible.
@@ -17,7 +17,6 @@ library AddressSet {
     {
         mapping(address => Element) data;
         address[] values;
-        uint theSize;
     }
 
     /// @notice AddressSet.insert(set, address) to add a value to the set.
@@ -33,7 +32,6 @@ library AddressSet {
             var valIndex = set.values.length++;
             set.data[val] = Element(valIndex, true);
             set.values[valIndex] = val;
-            set.theSize++;
             return true;
         }
     }
@@ -58,7 +56,6 @@ library AddressSet {
             set.data[swap].valIndex = valIndex;
         }
         set.values.length--;
-        set.theSize--;
         return true;
     }
 
@@ -68,14 +65,13 @@ library AddressSet {
     /// @return numRemoved (uint) number of elements removed.
     function removeAll(Set storage set) returns (uint numRemoved){
         var l = set.values.length;
-        if(set.theSize == 0){
+        if(l == 0){
             return 0;
         }
         for(uint i = 0; i < l; i++){
             delete set.data[set.values[i]];
         }
         delete set.values;
-        set.theSize = 0;
         return l;
     }
 
@@ -124,7 +120,7 @@ library AddressSet {
     /// @param set (AddressSet.Set) storage reference to the set.
     /// @return size (uint) the size
     function size(Set storage set) constant returns (uint size){
-        return set.theSize;
+        return set.values.length;
     }
 
     /// @notice AddressSet.values(set) to get all values in the set. NOTE: Amount of values may be high.
