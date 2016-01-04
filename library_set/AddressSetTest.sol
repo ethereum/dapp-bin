@@ -39,23 +39,23 @@ contract AddressSetTest {
     address constant TEST_ADDRESS_2 = 0xABCDEF;
     address constant TEST_ADDRESS_3 = 0xC0FFEE;
 
-    function testInsert() returns (bool has, bool atIndex0){
+    function testInsert() returns (bool has, bool firstIsCorrect){
         AddressSetWrapper asw = new AddressSetWrapper();
         asw.addAddress(TEST_ADDRESS);
         has = asw.hasAddress(TEST_ADDRESS);
         var (a, e) = asw.getAddressFromIndex(0);
-        atIndex0 = e && a == TEST_ADDRESS;
+        firstIsCorrect = e && a == TEST_ADDRESS;
         return;
     }
 
-    function testRemoveAddress() returns (bool removed, bool atIndex0IsNil, bool numAddressesIsNil){
+    function testRemoveAddress() returns (bool removed, bool firstIsCorrect, bool sizeIsCorrect){
         AddressSetWrapper asw = new AddressSetWrapper();
         asw.addAddress(TEST_ADDRESS);
         asw.removeAddress(TEST_ADDRESS);
         removed = !asw.hasAddress(TEST_ADDRESS);
         var (a, e) = asw.getAddressFromIndex(0);
-        atIndex0IsNil = !e;
-        numAddressesIsNil = (asw.numAddresses() == 0);
+        firstIsCorrect = !e && a == 0;
+        sizeIsCorrect = asw.numAddresses() == 0;
     }
 
     function testAddTwoAddresses() returns (bool hasFirst, bool hasSecond, bool firstIsCorrect, bool secondIsCorrect, bool sizeIsCorrect){
