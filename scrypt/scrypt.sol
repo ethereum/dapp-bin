@@ -36,9 +36,9 @@
 /// will end up at a point i' <= 1024 where we can directyl call convict.
 ///
 /// Overall, this should take not more than 22 rounds. Each round costs approximately
-/// 100000 gas and a call to convict is about 60000 gas.
+/// 140000 gas and a call to convict is about 80000 gas.
 /// This means in total, convicting a false claim should not cost more than
-/// around two million gas.
+/// around three million gas.
 /// Of course, as usual, having to convict a false claimant is only a matter
 /// of last resort, because every claimant knows that a false claim can be
 /// detected and if this is connected with deposits from both sides that
