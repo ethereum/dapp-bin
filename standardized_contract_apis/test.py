@@ -156,3 +156,9 @@ def test_ether_charging_datafeeds():
         assert c.get('moose', value=70) == 110
 
 
+if __name__ == '__main__':
+    test_currency_apis()
+    test_registrar_apis()
+    test_exchange_apis()
+    test_datafeeds()
+    test_ether_charging_datafeeds()

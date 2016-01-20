@@ -9,7 +9,9 @@ macro blockmix($_inp):
 
             X[0] = ~xor(X[0], inp[0])
             X[1] = ~xor(X[1], inp[1])
+            log(type=TestLog, 1, msg.gas)
             X = salsa20(X)
+            log(type=TestLog, 2, msg.gas)
             inp[4] = X[0]
             inp[5] = X[1]
 
@@ -51,11 +53,11 @@ macro salsa20($x):
             with i = 0:
                 with refpos = roundz:
                     while i < 4:
-                        with destination = ~mload(refpos - 31) & 255:
+                        with destination = x + (~mload(refpos - 31) & 255) * 4 - 28:
                             with bb = ~mload(refpos - 28) & 255:
                                 with a = (mload(x + (~mload(refpos-30) & 255) * 4 - 28) + mload(x + (~mload(refpos-29) & 255) * 4 - 28)) & 0xffffffff:
-                                    with oldval = mload(x + destination * 4 - 28):
-                                        mcopylast4(x + destination * 4 - 28, ~xor(oldval, ~or(a * 2**bb, a / 2**(32 - bb))))
+                                    with oldval = mload(destination):
+                                        mcopylast4(destination, ~xor(oldval, ~or(a * 2**bb, a / 2**(32 - bb))))
                         refpos += 4
                         if refpos == roundz + 128:
                             i += 1
@@ -84,7 +86,7 @@ def smix(b:str):
                     while k < if(i > 0, 8, 0):
                         x[k] = self.smix_intermediates[h].state[k]
                         k += 1
-                    while i < 2048 and msg.gas > 300000:
+                    while i < 2048 and msg.gas > 450000:
                         if i < 1024:
                             self.smix_intermediates[h].stored[i][0] = x[0]
                             self.smix_intermediates[h].stored[i][1] = x[1]
