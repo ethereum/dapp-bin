@@ -1,5 +1,4 @@
-/// Used to create a slice from a byte-array. Slices are created from byte-arrays,
-/// but does not copy them.
+/// Used to create slices from 'bytes'.
 contract ByteSlice {
 
     struct Slice {
@@ -7,13 +6,13 @@ contract ByteSlice {
         uint _unsafe_len;      // Length.
     }
 
-    /// Converts a byte array to a slice from the given starting position.
-    function fromBytes(bytes memory data) internal constant returns (Slice memory slice) {
+    /// Create a slice from bytes.
+    function fromBytes(bytes memory bts) internal constant returns (Slice memory slice) {
         uint memPtr;
         assembly {
-            memPtr := add(data, 0x20)
+            memPtr := add(bts, 0x20)
         }
-        slice = Slice(memPtr, data.length);
+        slice = Slice(memPtr, bts.length);
     }
 
     /// Length of the slice.
@@ -21,7 +20,8 @@ contract ByteSlice {
         return slice._unsafe_len;
     }
 
-    /// returns the byte at index 'index'.
+    /// returns the byte at 'index'.
+    /// Index must be less then 'len(slice)', or the function will throw.
     function at(Slice memory slice, uint index) internal constant returns (byte b) {
         if (index >= slice._unsafe_len)
             throw;
@@ -34,6 +34,7 @@ contract ByteSlice {
     }
 
     /// returns the byte at index 'index', where 'index' is allowed to be negative.
+    /// The index must be less then 'len(slice)', and greater then '-len(slice)'
     function at(Slice memory slice, int index) internal constant returns (byte b) {
         if (index >= 0)
             return at(slice, uint(index));
@@ -43,7 +44,7 @@ contract ByteSlice {
         return at(slice, slice._unsafe_len - iAbs);
     }
 
-    /// creates a 'bytes memory' variable from a slice, copying the data.
+    /// creates a 'bytes' memory-variable from a slice, copying the data.
     function toBytes(Slice memory slice) internal constant returns (bytes memory bts) {
         uint len = slice._unsafe_len;
         uint memPtr = slice._unsafe_memPtr;
@@ -77,7 +78,7 @@ contract ByteSlice {
     }
 
     /// Create a new slice from the given starting position.
-    /// 'startPos' must be less then 'len(_src)'
+    /// 'startpos' must be less then 'len(slice)'
     function newSlice(Slice memory slice, uint startpos) internal constant returns (Slice memory newSlice) {
         if (startpos > slice._unsafe_len)
             throw;
@@ -87,7 +88,8 @@ contract ByteSlice {
 
     /// Create a new slice from the given starting position.
     /// Negative starting position allowed.
-    /// 'startPos' must be less then 'len(_src)'
+    /// 'startpos' must be less then 'len(slice)', and greater then '-len(slice)'
+    /// Warning: higher gas-cost then the function that uses usigned integers.
     function newSlice(Slice memory slice, int startpos) internal constant returns (Slice memory newSlice) {
         uint sAbs;
         uint startpos_;
@@ -107,8 +109,8 @@ contract ByteSlice {
     }
 
     /// Create a new slice from the given starting position.
-    /// 'startPos' must be less then 'len(_src)'
-    /// 'endpos' must be less then or equal to 'len(_src)'
+    /// 'startpos' and 'endpos' must not be larger then 'len(slice)',
+    /// and 'startpos' must not be greater then 'endpos'.
     function newSlice(Slice memory slice, uint startpos, uint endpos) internal constant returns (Slice memory newSlice) {
         if (startpos > slice._unsafe_len || endpos > slice._unsafe_len || startpos > endpos)
             throw;
@@ -118,9 +120,11 @@ contract ByteSlice {
     }
 
     /// Same as new(Slice memory, uint, uint) but allows for negative indices.
-    /// Warning: higher cost then using usigned integers.
+    /// 'startpos' and 'endpos' must both be less then 'len(slice)', and larger then '-len(slice)'
+    /// additionally, 'endpos' may not be smaller then 'startpos' (or 'len(slice) - pos' in the
+    /// case of negative values.
+    /// Warning: higher gas-cost then the function that uses usigned integers.
     function newSlice(Slice memory slice, int startpos, int endpos) internal constant returns (Slice memory newSlice) {
-       // Don't allow slice on bytes of length 0.
         uint startpos_;
         uint endpos_;
         if (startpos < 0) {
@@ -158,6 +162,7 @@ contract ByteSlice {
     }
 
     // Only sets the length to 0 and deletes the pointer.
+    // A deleted slice can still be turned into bytes, but will only generate the empty bytes.
     function deleteSlice(Slice memory slice) internal constant {
         slice._unsafe_memPtr = 0;
         slice._unsafe_len = 0;
