@@ -138,7 +138,7 @@ contract multiowned {
         uint ownerIndexBit = 2**ownerIndex;
         return !(pending.ownersDone & ownerIndexBit == 0);
     }
-    
+
     // INTERNAL METHODS
 
     function confirmAndCheck(bytes32 _operation) internal returns (bool) {
@@ -363,14 +363,53 @@ contract Wallet is multisig, multiowned, daylimit {
             return true;
         }
     }
-    
+
+    // Gets the number of pending transactions
+    function numPendingTransactions() constant returns (uint _pendingTransactionsCount) {
+        _pendingTransactionsCount = 0;
+        // Use m_pendingIndex.length to get all hashes, then count how many of the
+        // operations are transactions, because we don't want to store hashes twice
+        // and this is a local call anyway
+        for (uint i = 0; i < m_pendingIndex.length; i++) {
+            if (isPendingTransaction(i)) {
+              _pendingTransactionsCount++;
+            }
+        }
+    }
+
+    // Gets the pending operation at a specified index
+    // Will return a tuple [bytes32 operationHash, uint confirmationsNeeded, address toAddress, uint transactionValue, bytes data]
+    function getPendingTransaction(uint _index) constant returns (bytes32 _operationHash, uint _confirmationsNeeded, address _toAddress, uint _transactionValue, bytes _data) {
+        uint pendingTransactionsCount = 0;
+        // Seek through all of m_pendingIndex (used in the multiowned contract)
+        // But only count transactions
+        for (uint i = 0; i < m_pendingIndex.length; i++) {
+            if (isPendingTransaction(i)) {
+                if (_index == pendingTransactionsCount) {
+                    // Found the pending transaction, return it.
+                    var operationHash = m_pendingIndex[i];
+                    return (operationHash, m_pending[operationHash].yetNeeded, address(m_txs[operationHash].to), m_txs[operationHash].value, m_txs[operationHash].data);
+                }
+                pendingTransactionsCount++;
+            }
+        }
+    }
+
     // INTERNAL METHODS
-    
+
     function clearPending() internal {
         uint length = m_pendingIndex.length;
         for (uint i = 0; i < length; ++i)
             delete m_txs[m_pendingIndex[i]];
         super.clearPending();
+    }
+
+    // Determine if a pending operation index is a pending transaction
+    function isPendingTransaction(uint _index) constant internal returns (bool) {
+        if (m_txs[m_pendingIndex[_index]].to != 0 || m_txs[m_pendingIndex[_index]].data.length != 0) {
+            return true;
+        }
+        return false;
     }
 
 	// FIELDS
