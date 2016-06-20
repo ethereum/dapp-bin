@@ -52,6 +52,7 @@ contract multiowned {
     // constructor is given number of sigs required to do protected "onlymanyowners" transactions
     // as well as the selection of addresses capable of confirming them.
     function multiowned(address[] _owners, uint _required) {
+        if (_required > 1 && _owners.length < _required -1) throw;
         m_numOwners = _owners.length + 1;
         m_owners[1] = uint(msg.sender);
         m_ownerIndex[uint(msg.sender)] = 1;
