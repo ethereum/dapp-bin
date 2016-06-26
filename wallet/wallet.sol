@@ -258,7 +258,8 @@ contract daylimit is multiowned {
             m_lastDay = today();
         }
         // check to see if there's enough left - if so, subtract and return true.
-        if (m_spentToday + _value <= m_dailyLimit) {
+        // overflow protection                    // dailyLimit check  
+        if (m_spentToday + _value >= m_spentToday && m_spentToday + _value <= m_dailyLimit) {
             m_spentToday += _value;
             return true;
         }
