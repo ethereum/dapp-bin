@@ -122,7 +122,12 @@ contract multiowned {
         clearPending();
         RequirementChanged(_newRequired);
     }
-    
+
+    // Gets an owner by 0-indexed position (using numOwners as the count)
+    function getOwner(uint ownerIndex) external constant returns (address) {
+        return address(m_owners[ownerIndex + 1]);
+    }
+
     function isOwner(address _addr) returns (bool) {
         return m_ownerIndex[uint(_addr)] > 0;
     }
@@ -270,8 +275,8 @@ contract daylimit is multiowned {
 	// FIELDS
 
     uint public m_dailyLimit;
-    uint m_spentToday;
-    uint m_lastDay;
+    uint public m_spentToday;
+    uint public m_lastDay;
 }
 
 // interface contract for multisig proxy contracts; see below for docs.
