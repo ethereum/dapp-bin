@@ -21,7 +21,7 @@ contract multiowned {
 
 	// EVENTS
 
-    // this contract only has five types of events: it can accept a confirmation, in which case
+    // this contract only has six types of events: it can accept a confirmation, in which case
     // we record owner and operation (hash) alongside it.
     event Confirmation(address owner, bytes32 operation);
     event Revoke(address owner, bytes32 operation);
@@ -247,7 +247,7 @@ contract daylimit is multiowned {
     function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data)) external {
         m_dailyLimit = _newLimit;
     }
-    // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
+    // resets the amount already spent today. needs many of the owners to confirm. 
     function resetSpentToday() onlymanyowners(sha3(msg.data)) external {
         m_spentToday = 0;
     }
@@ -263,6 +263,7 @@ contract daylimit is multiowned {
             m_lastDay = today();
         }
         // check to see if there's enough left - if so, subtract and return true.
+        // overflow protection                    // dailyLimit check  
         if (m_spentToday + _value >= m_spentToday && m_spentToday + _value <= m_dailyLimit) {
             m_spentToday += _value;
             return true;
@@ -336,7 +337,7 @@ contract Wallet is multisig, multiowned, daylimit {
             Deposit(msg.sender, msg.value);
     }
     
-    // Outside-visible transact entry point. Executes transacion immediately if below daily spend limit.
+    // Outside-visible transact entry point. Executes transaction immediately if below daily spend limit.
     // If not, goes into multisig process. We provide a hash on return to allow the sender to provide
     // shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
     // and _data arguments). They still get the option of using them if they want, anyways.
