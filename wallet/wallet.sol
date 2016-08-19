@@ -343,7 +343,9 @@ contract Wallet is multisig, multiowned, daylimit {
     // and _data arguments). They still get the option of using them if they want, anyways.
     function execute(address _to, uint _value, bytes _data) external onlyowner returns (bytes32 _r) {
         // first, take the opportunity to check that we're under the daily limit.
-        if (underLimit(_value)) {
+        // we also must check that there is no data (this is not a contract invocation),
+        // since we are unable to determine the value outcome of it.
+        if (underLimit(_value) && _data.length == 0 && !hasCode(_to)) {
             SingleTransact(msg.sender, _value, _to, _data);
             // yes - just execute the call.
             _to.call.value(_value)(_data);
@@ -377,6 +379,13 @@ contract Wallet is multisig, multiowned, daylimit {
         for (uint i = 0; i < length; ++i)
             delete m_txs[m_pendingIndex[i]];
         super.clearPending();
+    }
+
+    // Used to determine if an address may execute code
+    function hasCode(address _addr) internal constant returns (bool) {
+        uint size;
+        assembly { size := extcodesize(_addr) }
+        return size > 0;
     }
 
 	// FIELDS
