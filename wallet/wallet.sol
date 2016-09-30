@@ -304,7 +304,7 @@ contract multisig {
 }
 
 // usage:
-// bytes32 h = Wallet(w).from(oneOwner).transact(to, value, data);
+// bytes32 h = Wallet(w).from(oneOwner).execute(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
 contract Wallet is multisig, multiowned, daylimit {
 
