@@ -48,6 +48,7 @@
 ///
 /// Disclaimer: This has not been tested and is only meant as a proof of concept
 /// and a way to compute the gas costs.
+pragma solidity ^0.4.9;
 contract ScryptVerifier {
     
     struct VerificationSession {
@@ -79,12 +80,12 @@ contract ScryptVerifier {
     event NewQuery(uint sessionId);
     event NewResponse(uint sessionId);
 
-    modifier onlyClaimant(uint id) { if (msg.sender != sessions[id].claimant) throw; _ }
+    modifier onlyClaimant(uint id) { if (msg.sender != sessions[id].claimant) throw; _ ;}
     modifier onlyChallenger(uint id) {
         var session = sessions[id];
         if (session.challenger == 0) session.challenger = msg.sender;
         else if (msg.sender != session.challenger) throw;
-        _
+        _;
     }
 
     /// Challenger queries claimant for the value on a wire `_i`.
