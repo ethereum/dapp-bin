@@ -1,14 +1,96 @@
-//sol Wallet
+// sol Wallet
 // Multi-sig, daily-limited account proxy/wallet.
 // @authors:
 // Gav Wood <g@ethdev.com>
+// Ben Chan <bencxr@fragnetics.com>
+
+// Inheritable contract with methods that can be used to help with the pattern of using ecrecover to obtain a signing
+// address from a signature in a data field for the purposes of confirming an operation
+contract ecverifiable {
+  // When we use ecrecover to verify signatures (in addition to msg.sender), an array window of sequence ids is used.
+  // This prevents from replay attacks by the first signer.
+  //
+  // Sequence IDs may not be repeated and should start from 1 onwards. Stores the last 10 largest sequence ids in a window
+  // New sequence ids being added must replace the smallest of those numbers and must be larger than the smallest value stored.
+  // This allows some degree of flexibility for submission of multiple transactions in a block.
+  uint constant SEQUENCE_ID_WINDOW_SIZE = 10;
+  uint[10] recentSequenceIds;
+
+  // Gets the next available sequence ID for signing when using confirmAndCheckUsingECRecover
+  function getNextSequenceId() returns (uint) {
+    uint highestSequenceId = 0;
+    for (uint i = 0; i < SEQUENCE_ID_WINDOW_SIZE; i++) {
+      if (recentSequenceIds[i] > highestSequenceId) {
+        highestSequenceId = recentSequenceIds[i];
+      }
+    }
+    return highestSequenceId + 1;
+  }
+
+  // Given the sequence id, operation hash and signature, verify the sequence id against replay attacks and then
+  // recover the signing address
+  function ecVerifyAndRecover(bytes32 operation, uint sequenceId, bytes signature) internal returns (address) {
+    tryInsertSequenceId(sequenceId);
+    return recoverAddressFromSignature(operation, signature);
+  }
+
+  /**
+   * Gets a signer's address using ecrecover
+   * @param operationHash the sha3 of the operation to verify
+   * @param signature the tightly packed signature of r, s, and v as an array of 65 bytes (returned by eth.sign)
+   */
+  function recoverAddressFromSignature(bytes32 operationHash, bytes signature) private returns (address) {
+    if (signature.length != 65) {
+      throw;
+    }
+    // We need to unpack the signature, which is given as an array of 65 bytes (from eth.sign)
+    bytes32 r;
+    bytes32 s;
+    uint8 v;
+    assembly {
+      r := mload(add(signature, 32))
+      s := mload(add(signature, 64))
+      v := and(mload(add(signature, 65)), 255)
+    }
+    if (v < 27) {
+      v += 27; // Ethereum versions are 27 or 28 as opposed to 0 or 1 which is submitted by some signing libs
+    }
+    return ecrecover(operationHash, v, r, s);
+  }
+
+  /**
+   * Verify that the sequence id has not been used before and inserts it. Throws if the sequence ID was not accepted.
+   * We collect a window of up to 10 recent sequence ids, and allow any sequence id that is not in the window and
+   * greater than the minimum element in the window.
+   */
+  function tryInsertSequenceId(uint sequenceId) private returns (uint) {
+    // Keep a pointer to the lowest value element in the window
+    uint lowestValueIndex = 0;
+    for (uint i = 0; i < SEQUENCE_ID_WINDOW_SIZE; i++) {
+      if (recentSequenceIds[i] == sequenceId) {
+        // This sequence ID has been used before. Disallow!
+        throw;
+      }
+      if (recentSequenceIds[i] < recentSequenceIds[lowestValueIndex]) {
+        lowestValueIndex = i;
+      }
+    }
+    if (sequenceId < recentSequenceIds[lowestValueIndex]) {
+      // The sequence ID being used is lower than the lowest value in the window
+      // so we cannot accept it as it may have been used before
+      throw;
+    }
+    recentSequenceIds[lowestValueIndex] = sequenceId;
+  }
+}
+
 // inheritable "property" contract that enables methods to be protected by requiring the acquiescence of either a
 // single, or, crucially, each of a number of, designated owners.
 // usage:
 // use modifiers onlyowner (just own owned) or onlymanyowners(hash), whereby the same hash must be provided by
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
-contract multiowned {
+contract multiowned is ecverifiable {
 
 	// TYPES
 
@@ -143,33 +225,56 @@ contract multiowned {
         uint ownerIndexBit = 2**ownerIndex;
         return !(pending.ownersDone & ownerIndexBit == 0);
     }
-    
-    // INTERNAL METHODS
 
+    // INTERNAL METHODS
+    // Called within the onlymanyowners modifier.
+    // Records a confirmation by msg.sender and returns true if the operation has the required number of confirmations
     function confirmAndCheck(bytes32 _operation) internal returns (bool) {
-        // determine what index the present sender is:
-        uint ownerIndex = m_ownerIndex[uint(msg.sender)];
-        // make sure they're an owner
-        if (ownerIndex == 0) return;
+        return confirmAndCheckOperationForOwner(_operation, msg.sender);
+    }
+
+    // This operation will look for 2 confirmations
+    // The first confirmation will be verified using ecrecover
+    // The second confirmation will be verified using msg.sender
+    function confirmWithSenderAndECRecover(bytes32 _operation, uint _sequenceId, bytes _signature) internal returns (bool) {
+        // We expect confirmAndCheckUsingECRecover to run and return false, but mark the pending operation as having 1 confirm
+        return confirmAndCheckUsingECRecover(_operation, _sequenceId, _signature) || confirmAndCheck(_operation);
+    }
+
+    // Gets an owner using ecrecover, records their confirmation and
+    // returns true if the operation has the required number of confirmations
+    function confirmAndCheckUsingECRecover(bytes32 _operation, uint _sequenceId, bytes _signature) internal returns (bool) {
+        var ownerAddress = ecVerifyAndRecover(_operation, _sequenceId, _signature);
+        return confirmAndCheckOperationForOwner(_operation, ownerAddress);
+    }
+
+    // Records confirmations for an operation by the given owner and
+    // returns true if the operation has the required number of confirmations
+    function confirmAndCheckOperationForOwner(bytes32 _operation, address _owner) private returns (bool) {
+        // Determine what index the present sender is
+        uint ownerIndex = m_ownerIndex[uint(_owner)];
+        // Make sure they're an owner
+        if (ownerIndex == 0) return false;
 
         var pending = m_pending[_operation];
-        // if we're not yet working on this operation, switch over and reset the confirmation status.
+        // If we're not yet working on this operation, add it
         if (pending.yetNeeded == 0) {
-            // reset count of confirmations needed.
+            // Reset count of confirmations needed.
             pending.yetNeeded = m_required;
-            // reset which owners have confirmed (none) - set our bitmap to 0.
+            // Reset which owners have confirmed (none) - set our bitmap to 0.
             pending.ownersDone = 0;
             pending.index = m_pendingIndex.length++;
             m_pendingIndex[pending.index] = _operation;
         }
-        // determine the bit to set for this owner.
+
+        // Determine the bit to set for this owner on the pending state for the operation
         uint ownerIndexBit = 2**ownerIndex;
-        // make sure we (the message sender) haven't confirmed this operation previously.
+        // Make sure the owner has not confirmed this operation previously.
         if (pending.ownersDone & ownerIndexBit == 0) {
-            Confirmation(msg.sender, _operation);
-            // ok - check if count is enough to go ahead.
+            Confirmation(_owner, _operation);
+            // Check if this confirmation puts us at the required number of needed confirmations.
             if (pending.yetNeeded <= 1) {
-                // enough confirmations: reset and run interior.
+                // Enough confirmations: mark operation as passed and return true to continue execution
                 delete m_pendingIndex[m_pending[_operation].index];
                 delete m_pending[_operation];
                 return true;
@@ -181,6 +286,8 @@ contract multiowned {
                 pending.ownersDone |= ownerIndexBit;
             }
         }
+
+        return false;
     }
 
     function reorganizeOwners() private {
@@ -369,9 +476,38 @@ contract Wallet is multisig, multiowned, daylimit {
             return true;
         }
     }
-    
+
+    // Execute and confirm a transaction with 2 signatures - one using the msg.sender and another using ecrecover
+    // The signature is a signed form (using eth.sign) of tightly packed to, value, data, expiretime and sequenceId
+    // Sequence IDs are numbers starting from 1. They used to prevent replay attacks and may not be repeated.
+    function executeAndConfirm(address _to, uint _value, bytes _data, uint _expireTime, uint _sequenceId, bytes _signature)
+        external onlyowner
+        returns (bytes32)
+    {
+        if (_expireTime < block.timestamp) {
+            throw;
+        }
+
+        // The unique hash is the combination of all arguments except the signature
+        var operationHash = sha3(_to, _value, _data, _expireTime, _sequenceId);
+
+        // Confirm the operation
+        if (confirmWithSenderAndECRecover(operationHash, _sequenceId, _signature)) {
+            if (!(_to.call.value(_value)(_data))) {
+                throw;
+            }
+            MultiTransact(msg.sender, operationHash, _value, _to, _data);
+            return 0;
+        }
+
+        m_txs[operationHash].to = _to;
+        m_txs[operationHash].value = _value;
+        m_txs[operationHash].data = _data;
+        ConfirmationNeeded(operationHash, msg.sender, _value, _to, _data);
+        return operationHash;
+    }
+
     // INTERNAL METHODS
-    
     function clearPending() internal {
         uint length = m_pendingIndex.length;
         for (uint i = 0; i < length; ++i)
