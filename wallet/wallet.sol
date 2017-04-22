@@ -8,7 +8,7 @@
 //
 // usage:
 // create a Wallet contract. When an owner wants to initiate a transaction, call
-// execute(). when another owner wants to sign that transaction, call confirm().
+// execute(). when another owner wants to approve that transaction, call confirm().
 //
 // dev notes:
 // use modifiers onlyowner (just own owned) or onlymanyowners(hash), whereby the same hash must be provided by
