@@ -8,6 +8,9 @@
 // use modifiers onlyowner (just own owned) or onlymanyowners(hash), whereby the same hash must be provided by
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
+
+pragma solidity ^0.4.10;
+
 contract multiowned {
 
 	// TYPES
@@ -36,15 +39,15 @@ contract multiowned {
 
     // simple single-sig function modifier.
     modifier onlyowner {
-        if (isOwner(msg.sender))
-            _
+        require(isOwner(msg.sender));
+        _;
     }
     // multi-sig function modifier: the operation must have an intrinsic hash in order
     // that later attempts can be realised as the same underlying operation and
     // thus count as confirmations.
     modifier onlymanyowners(bytes32 _operation) {
-        if (confirmAndCheck(_operation))
-            _
+        require(confirmAndCheck(_operation));
+        _;
     }
 
 	// METHODS
@@ -232,8 +235,8 @@ contract daylimit is multiowned {
 
     // simple modifier for daily limit.
     modifier limitedDaily(uint _value) {
-        if (underLimit(_value))
-            _
+        require(underLimit(_value));
+        _;
     }
 
 	// METHODS
@@ -327,11 +330,11 @@ contract Wallet is multisig, multiowned, daylimit {
     
     // kills the contract sending everything to `_to`.
     function kill(address _to) onlymanyowners(sha3(msg.data)) external {
-        suicide(_to);
+        selfdestruct(_to);
     }
     
     // gets called when no other function matches
-    function() {
+    function() payable {
         // just being sent some cash?
         if (msg.value > 0)
             Deposit(msg.sender, msg.value);
@@ -346,7 +349,7 @@ contract Wallet is multisig, multiowned, daylimit {
         if (underLimit(_value)) {
             SingleTransact(msg.sender, _value, _to, _data);
             // yes - just execute the call.
-            _to.call.value(_value)(_data);
+            require(_to.call.value(_value)(_data));
             return 0;
         }
         // determine our operation hash.
@@ -363,7 +366,7 @@ contract Wallet is multisig, multiowned, daylimit {
     // to determine the body of the transaction from the hash provided.
     function confirm(bytes32 _h) onlymanyowners(_h) returns (bool) {
         if (m_txs[_h].to != 0) {
-            m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data);
+            require(m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data));
             MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data);
             delete m_txs[_h];
             return true;
