@@ -46,8 +46,8 @@ contract multiowned {
     // that later attempts can be realised as the same underlying operation and
     // thus count as confirmations.
     modifier onlymanyowners(bytes32 _operation) {
-        require(confirmAndCheck(_operation));
-        _;
+        if(confirmAndCheck(_operation));
+            _;
     }
 
 	// METHODS
