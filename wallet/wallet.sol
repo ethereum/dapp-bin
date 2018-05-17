@@ -260,6 +260,11 @@ contract daylimit is multiowned {
     // checks to see if there is at least `_value` left from the daily limit today. if there is, subtracts it and
     // returns true. otherwise just returns false.
     function underLimit(uint _value) internal onlyowner returns (bool) {
+        // Don't allow any instant withdrawals if the daily limit is 0
+        if (m_dailyLimit == 0) {
+           return false;
+        }
+
         // reset the spend limit if we're on a different day to last time.
         if (today() > m_lastDay) {
             m_spentToday = 0;
