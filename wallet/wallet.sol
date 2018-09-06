@@ -286,8 +286,8 @@ contract daylimit is multiowned {
 // interface contract for multisig proxy contracts; see below for docs.
 contract multisig {
 
-	// EVENTS
-
+    // EVENTS
+    // ======
     // logged events:
     // Funds has arrived into the wallet (record how much).
     event Deposit(address _from, uint value);
@@ -299,10 +299,15 @@ contract multisig {
     event ConfirmationNeeded(bytes32 operation, address initiator, uint value, address to, bytes data);
     
     // FUNCTIONS
-    
-    // TODO: document
+    // =========
+
+    // Replaces one of the owners `_from` with another `_to`.
     function changeOwner(address _from, address _to) external;
+
+    // Executes transaction immediately if below daily spend limit, otherwise goes into multisig process.
     function execute(address _to, uint _value, bytes _data) external returns (bytes32);
+
+    // Confirm a transaction through just the hash.
     function confirm(bytes32 _h) returns (bool);
 }
 
