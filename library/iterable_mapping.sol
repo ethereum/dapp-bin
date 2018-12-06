@@ -17,9 +17,9 @@ library IterableMapping
       return true;
     else
     {
-      keyIndex = self.keys.length++;
-      self.data[key].keyIndex = keyIndex + 1;
-      self.keys[keyIndex].key = key;
+      keyIndex = ++self.keys.length;
+      self.data[key].keyIndex = keyIndex;
+      self.keys[keyIndex-1].key = key;
       self.size++;
       return false;
     }
