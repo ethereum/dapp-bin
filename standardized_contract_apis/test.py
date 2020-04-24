@@ -28,6 +28,7 @@ def test_currency_apis():
         c.approve(tester.a0, sender=tester.k2)
         assert c.sendCoinFrom(tester.a2, 100, tester.a3, sender=tester.k0) is True
         c.disapprove(tester.a0, sender=tester.k2)
+        print s.block.gas_used / len(s.block.transaction_list)
         assert c.sendCoinFrom(tester.a2, 100, tester.a3, sender=tester.k0) is False
         assert c.coinBalance(sender=tester.k0) == 999000
         assert c.coinBalanceOf(tester.a2) == 400
@@ -156,3 +157,9 @@ def test_ether_charging_datafeeds():
         assert c.get('moose', value=70) == 110
 
 
+if __name__ == '__main__':
+    test_currency_apis()
+    test_registrar_apis()
+    test_exchange_apis()
+    test_datafeeds()
+    test_ether_charging_datafeeds()
