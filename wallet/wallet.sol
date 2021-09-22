@@ -8,6 +8,9 @@
 // use modifiers onlyowner (just own owned) or onlymanyowners(hash), whereby the same hash must be provided by
 // some number (specified in constructor) of the set of owners (specified in the constructor, modifiable) before the
 // interior is executed.
+
+pragma solidity ^0.4.10;
+
 contract multiowned {
 
 	// TYPES
@@ -21,7 +24,7 @@ contract multiowned {
 
 	// EVENTS
 
-    // this contract only has five types of events: it can accept a confirmation, in which case
+    // this contract only has six types of events: it can accept a confirmation, in which case
     // we record owner and operation (hash) alongside it.
     event Confirmation(address owner, bytes32 operation);
     event Revoke(address owner, bytes32 operation);
@@ -36,15 +39,15 @@ contract multiowned {
 
     // simple single-sig function modifier.
     modifier onlyowner {
-        if (isOwner(msg.sender))
-            _
+        require(isOwner(msg.sender));
+        _;
     }
     // multi-sig function modifier: the operation must have an intrinsic hash in order
     // that later attempts can be realised as the same underlying operation and
     // thus count as confirmations.
     modifier onlymanyowners(bytes32 _operation) {
-        if (confirmAndCheck(_operation))
-            _
+        require(confirmAndCheck(_operation));
+        _;
     }
 
 	// METHODS
@@ -122,7 +125,12 @@ contract multiowned {
         clearPending();
         RequirementChanged(_newRequired);
     }
-    
+
+    // Gets an owner by 0-indexed position (using numOwners as the count)
+    function getOwner(uint ownerIndex) external constant returns (address) {
+        return address(m_owners[ownerIndex + 1]);
+    }
+
     function isOwner(address _addr) returns (bool) {
         return m_ownerIndex[uint(_addr)] > 0;
     }
@@ -227,8 +235,8 @@ contract daylimit is multiowned {
 
     // simple modifier for daily limit.
     modifier limitedDaily(uint _value) {
-        if (underLimit(_value))
-            _
+        require(underLimit(_value));
+        _;
     }
 
 	// METHODS
@@ -242,7 +250,7 @@ contract daylimit is multiowned {
     function setDailyLimit(uint _newLimit) onlymanyowners(sha3(msg.data)) external {
         m_dailyLimit = _newLimit;
     }
-    // (re)sets the daily limit. needs many of the owners to confirm. doesn't alter the amount already spent today.
+    // resets the amount already spent today. needs many of the owners to confirm. 
     function resetSpentToday() onlymanyowners(sha3(msg.data)) external {
         m_spentToday = 0;
     }
@@ -258,6 +266,7 @@ contract daylimit is multiowned {
             m_lastDay = today();
         }
         // check to see if there's enough left - if so, subtract and return true.
+        // overflow protection                    // dailyLimit check  
         if (m_spentToday + _value >= m_spentToday && m_spentToday + _value <= m_dailyLimit) {
             m_spentToday += _value;
             return true;
@@ -270,8 +279,8 @@ contract daylimit is multiowned {
 	// FIELDS
 
     uint public m_dailyLimit;
-    uint m_spentToday;
-    uint m_lastDay;
+    uint public m_spentToday;
+    uint public m_lastDay;
 }
 
 // interface contract for multisig proxy contracts; see below for docs.
@@ -298,7 +307,7 @@ contract multisig {
 }
 
 // usage:
-// bytes32 h = Wallet(w).from(oneOwner).transact(to, value, data);
+// bytes32 h = Wallet(w).from(oneOwner).execute(to, value, data);
 // Wallet(w).from(anotherOwner).confirm(h);
 contract Wallet is multisig, multiowned, daylimit {
 
@@ -321,17 +330,17 @@ contract Wallet is multisig, multiowned, daylimit {
     
     // kills the contract sending everything to `_to`.
     function kill(address _to) onlymanyowners(sha3(msg.data)) external {
-        suicide(_to);
+        selfdestruct(_to);
     }
     
     // gets called when no other function matches
-    function() {
+    function() payable {
         // just being sent some cash?
         if (msg.value > 0)
             Deposit(msg.sender, msg.value);
     }
     
-    // Outside-visible transact entry point. Executes transacion immediately if below daily spend limit.
+    // Outside-visible transact entry point. Executes transaction immediately if below daily spend limit.
     // If not, goes into multisig process. We provide a hash on return to allow the sender to provide
     // shortcuts for the other confirmations (allowing them to avoid replicating the _to, _value
     // and _data arguments). They still get the option of using them if they want, anyways.
@@ -340,7 +349,7 @@ contract Wallet is multisig, multiowned, daylimit {
         if (underLimit(_value)) {
             SingleTransact(msg.sender, _value, _to, _data);
             // yes - just execute the call.
-            _to.call.value(_value)(_data);
+            require(_to.call.value(_value)(_data));
             return 0;
         }
         // determine our operation hash.
@@ -357,7 +366,7 @@ contract Wallet is multisig, multiowned, daylimit {
     // to determine the body of the transaction from the hash provided.
     function confirm(bytes32 _h) onlymanyowners(_h) returns (bool) {
         if (m_txs[_h].to != 0) {
-            m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data);
+            require(m_txs[_h].to.call.value(m_txs[_h].value)(m_txs[_h].data));
             MultiTransact(msg.sender, _h, m_txs[_h].value, m_txs[_h].to, m_txs[_h].data);
             delete m_txs[_h];
             return true;
