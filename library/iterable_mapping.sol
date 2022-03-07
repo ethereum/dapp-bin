@@ -9,7 +9,7 @@ library IterableMapping
   }
   struct IndexValue { uint keyIndex; uint value; }
   struct KeyFlag { uint key; bool deleted; }
-  function insert(itmap storage self, uint key, uint value) returns (bool replaced)
+  function insert(itmap storage self, uint key, uint value) internal returns (bool replaced)
   {
     uint keyIndex = self.data[key].keyIndex;
     self.data[key].value = value;
@@ -17,14 +17,14 @@ library IterableMapping
       return true;
     else
     {
-      keyIndex = self.keys.length++;
-      self.data[key].keyIndex = keyIndex + 1;
-      self.keys[keyIndex].key = key;
+      keyIndex = ++self.keys.length;
+      self.data[key].keyIndex = keyIndex;
+      self.keys[keyIndex-1].key = key;
       self.size++;
       return false;
     }
   }
-  function remove(itmap storage self, uint key) returns (bool success)
+  function remove(itmap storage self, uint key) internal returns (bool success)
   {
     uint keyIndex = self.data[key].keyIndex;
     if (keyIndex == 0)
@@ -34,33 +34,33 @@ library IterableMapping
     self.size --;
     return true;
   }
-  function contains(itmap storage self, uint key) returns (bool)
+  function contains(itmap storage self, uint key) internal view returns (bool)
   {
     return self.data[key].keyIndex > 0;
   }
-  function iterate_start(itmap storage self) returns (uint keyIndex)
+  function iterate_start(itmap storage self) internal returns (uint keyIndex)
   {
     return iterate_next(self, uint(-1));
   }
-  function iterate_valid(itmap storage self, uint keyIndex) returns (bool)
+  function iterate_valid(itmap storage self, uint keyIndex) internal view returns (bool)
   {
     return keyIndex < self.keys.length;
   }
-  function iterate_next(itmap storage self, uint keyIndex) returns (uint r_keyIndex)
+  function iterate_next(itmap storage self, uint keyIndex) internal returns (uint r_keyIndex)
   {
     keyIndex++;
     while (keyIndex < self.keys.length && self.keys[keyIndex].deleted)
       keyIndex++;
     return keyIndex;
   }
-  function iterate_get(itmap storage self, uint keyIndex) returns (uint key, uint value)
+  function iterate_get(itmap storage self, uint keyIndex) internal view returns (uint key, uint value)
   {
     key = self.keys[keyIndex].key;
     value = self.data[key].value;
   }
 }
 
-// How to use it:
+/* How to use it:
 contract User
 {
   // Just a struct holding our data.
@@ -83,3 +83,4 @@ contract User
     }
   }
 }
+*/
