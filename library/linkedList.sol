@@ -55,6 +55,8 @@ library DoublyLinkedList {
     }
     // Iterator interface
     function iterate_start(data storage self) returns (uint80) { return self.first; }
+    function iterate_end(data storage self) returns (uint80) { return self.last; }
+    function size(data storage self) returns (uint80) { return self.count; }
     function iterate_valid(data storage self, uint80 _index) returns (bool) { return _index - 1 < self.items.length; }
     function iterate_prev(data storage self, uint80 _index) returns (uint80) { return self.items[_index - 1].prev; }
     function iterate_next(data storage self, uint80 _index) returns (uint80) { return self.items[_index - 1].next; }
