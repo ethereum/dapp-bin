@@ -32,7 +32,6 @@ library IterableMapping
     delete self.data[key];
     self.keys[keyIndex - 1].deleted = true;
     self.size --;
-    return true;
   }
   function contains(itmap storage self, uint key) returns (bool)
   {
