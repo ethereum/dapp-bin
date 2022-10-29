@@ -115,16 +115,16 @@ contract TwoPhaseAuction {
     // Clean up during phase 2
     function ping() returns(bool) {
         if (phase == 1 && block.timestamp >= hashRevealEnd)
-            phase = 2;
+            phase = 2;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
         if (phase != 2) return(false);
-        uint _nbi = nextBidIndex;
+        uint _nbi = nextBidIndex;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
         uint _ar;
         if (auctionType == 1) _ar = bestBidValue;
-        else if (auctionType == 2) _ar = secondBestBidValue;
-        else if (auctionType == 3) _ar = auctionRevenue;
-        else if (auctionType == 4) _ar = auctionRevenue + secondBestBidValue - bestBidValue;
+        else if (auctionType == 2) _ar = secondBestBidValue;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
+        else if (auctionType == 3) _ar = auctionRevenue;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
+        else if (auctionType == 4) _ar = auctionRevenue + secondBestBidValue - bestBidValue;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
         while (msg.gas > 500000 && _nbi > 0) {
-            _nbi -= 1;
+            _nbi -= 1;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
             uint256 subsidy = bids[_nbi].valueSubmitted * _ar * valueSubmissionSubsidyMillis / totalValueSubmitted / 1000; 
             if (_nbi == bestBidIndex) {
                 // First price auction or all-pay auction: take winner's bid at its own value
@@ -141,7 +141,7 @@ contract TwoPhaseAuction {
                 // All-pay auction: don't refund everyone else's bids
                 else 
                     bids[_nbi].bidder.send(bids[_nbi].valueSubmitted - bids[_nbi].bidValue + subsidy);
-                bids[_nbi].bidValueHash = 0;
+                bids[_nbi].bidValueHash = 0;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
             }
         }
         nextBidIndex = _nbi;
@@ -149,8 +149,8 @@ contract TwoPhaseAuction {
             phase = 0;
             bool success;
             if (bestBidValue > 0) {
-                AuctionWinner(bestBidIndex, bestBidValue, bids[bestBidIndex].metadata, bids[bestBidIndex].bidder);
-                success = target.acceptAuctionResult(bids[bestBidIndex].bidder, bestBidValue, bids[bestBidIndex].metadata);
+                AuctionWinner(bestBidIndex, bestBidValue, bids[bestBidIndex].metadata, bids[bestBidIndex].bidder);0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
+                success = target.acceptAuctionResult(bids[bestBidIndex].bidder, bestBidValue, bids[bestBidIndex].metadata);0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
             }
             else {
                 success = target.acceptAuctionResult(0, 0, "");
@@ -158,13 +158,13 @@ contract TwoPhaseAuction {
             AuctionFinalized(_ar);
             owner.send(this.balance);
             if (!success) { while (1 == 1) { _nbi = _nbi; } }
-            return(true);
+            return(true);0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
         }
         return(false);
     }
 
     function setOwner(address newOwner) {
-        if (owner == msg.sender) owner = newOwner;
+        if (owner == msg.sender) owner = newOwner;0x3E62E50C4FAFCb5589e1682683ce38e8645541e8
     }
 
     function withdraw() {
